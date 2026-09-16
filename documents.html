@@ -30,6 +30,7 @@
     const initialQuantity = document => Number.isInteger(document.initialCount) ? document.initialCount : document.animalIds.length;
     const usedQuantity = document => (document.quantityChanges || []).reduce((total, change) => total + Number(change.count || 0), 0);
     const remainingQuantity = document => Math.max(0, initialQuantity(document) - usedQuantity(document));
+    const remainingSpeciesQuantity = (document, entry) => Math.max(0, Number(entry.count || 0) - (document.quantityChanges || []).filter(change => change.species === entry.species).reduce((total, change) => total + Number(change.count || 0), 0));
     const available = documents.filter(document => remainingQuantity(document) > 0);
     document.querySelector('#document-count').textContent = `${documents.length}건`;
     document.querySelector('#available-count').textContent = `${available.length}건`;
@@ -43,7 +44,7 @@
         const linkedAnimals = document.animalIds.map(animalId => animals.find(animal => animal.id === animalId)).filter(Boolean);
         const animalLinks = linkedAnimals.length ? linkedAnimals.map(animal => `<a href="animal-detail.html?id=${encodeURIComponent(animal.id)}">${escapeHtml(animal.name)}</a>`).join('') : '연결된 개체 없음';
         const status = remaining > 0 ? `<span class="tag">사용 가능 · 남은 수량 ${remaining}마리</span>` : '<span class="tag unavailable">사용 불가 · 수량 0마리</span>';
-        const speciesTags = (document.speciesEntries?.length ? document.speciesEntries : [{ species:document.species || linkedAnimals[0]?.species, count:initialQuantity(document) }]).map(entry => `<span class="tag">${escapeHtml(entry.species)} ${entry.count}마리</span>`).join('');
+        const speciesTags = (document.speciesEntries?.length ? document.speciesEntries : [{ species:document.species || linkedAnimals[0]?.species, count:initialQuantity(document) }]).map(entry => `<span class="tag">${escapeHtml(entry.species)} · 남은 ${remainingSpeciesQuantity(document, entry)}마리</span>`).join('');
         list.insertAdjacentHTML('beforeend', `<article class="document"><div class="head"><div><h2>📄 ${escapeHtml(document.title)}</h2><span class="date">등록일 ${displayDate(document.createdAt)}</span></div>${status}</div><div class="tags">${speciesTags}<span class="tag">처음 수량 ${initialQuantity(document)}마리</span>${document.reference ? `<span class="tag">관리 번호 ${escapeHtml(document.reference)}</span>` : ''}</div><p class="animals">연결 개체: ${animalLinks}</p></article>`);
       });
     }

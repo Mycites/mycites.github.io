@@ -64,6 +64,9 @@
     function initialQuantity(document) { return Number.isInteger(document.initialCount) ? document.initialCount : document.animalIds.length; }
     function usedQuantity(document) { return (document.quantityChanges || []).reduce((total, change) => total + Number(change.count || 0), 0); }
     function remainingQuantity(document) { return Math.max(0, initialQuantity(document) - usedQuantity(document)); }
+    function speciesEntries(document) { return document.speciesEntries?.length ? document.speciesEntries : [{ species:document.species || animal.species, count:initialQuantity(document) }]; }
+    function remainingSpeciesQuantity(document, species) { return Math.max(0, Number(speciesEntries(document).find(entry => entry.species === species)?.count || 0) - (document.quantityChanges || []).filter(change => change.species === species).reduce((total, change) => total + Number(change.count || 0), 0)); }
+    function updateQuantitySpecies() { const documentId = document.querySelector('#quantity-document')?.value; const selectedDocument = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === documentId); const select = document.querySelector('#quantity-species'); if (!select || !selectedDocument) return; select.innerHTML = speciesEntries(selectedDocument).map(entry => `<option value="${escapeHtml(entry.species)}">${escapeHtml(entry.species)} · 남은 ${remainingSpeciesQuantity(selectedDocument, entry.species)}마리</option>`).join(''); }
     function renderRecords() {
       const records = recordsForAnimal();
       const target = document.querySelector('#records');
@@ -107,7 +110,7 @@
       const documents = documentsForAnimal();
       const target = document.querySelector('#documents');
       const select = document.querySelector('#quantity-document');
-      if (select) select.innerHTML = documents.map(document => `<option value="${escapeHtml(document.id)}">${escapeHtml(document.title)} · 남은 수량 ${remainingQuantity(document)}마리</option>`).join('');
+      if (select) { select.innerHTML = documents.map(document => `<option value="${escapeHtml(document.id)}">${escapeHtml(document.title)} · 남은 수량 ${remainingQuantity(document)}마리</option>`).join(''); updateQuantitySpecies(); }
       if (!documents.length) { target.innerHTML = '<p class="empty">연결된 서류가 없습니다. 한 장의 서류에 포함된 개체는 함께 선택해 연결해 주세요.</p>'; return; }
       target.innerHTML = documents.map(document => {
         const connectedAnimals = document.animalIds.map(animalId => animals.find(item => item.id === animalId)?.name).filter(Boolean).map(escapeHtml).join(', ');
@@ -122,6 +125,7 @@
       }).join('');
       target.querySelectorAll('[data-document-id]').forEach(button => button.addEventListener('click', () => {
         select.value = button.dataset.documentId;
+        updateQuantitySpecies();
         document.querySelector('#quantity-form').classList.add('open');
       }));
     }
@@ -134,14 +138,15 @@
       form.addEventListener('submit', event => {
         event.preventDefault();
         const documentId = form.querySelector('#quantity-document').value;
+        const species = form.querySelector('#quantity-species').value;
         const count = Number(form.querySelector('#quantity-count').value);
         const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
         const selectedDocument = documents.find(document => document.id === documentId);
         if (!selectedDocument) { alert('수량을 관리할 서류를 선택해 주세요.'); return; }
         if (!Number.isInteger(count) || count < 1) { alert('감소할 마리 수를 1 이상으로 입력해 주세요.'); return; }
-        if (count > remainingQuantity(selectedDocument)) { alert(`남은 수량 ${remainingQuantity(selectedDocument)}마리를 넘어서 기록할 수 없어요.`); return; }
+        if (count > remainingSpeciesQuantity(selectedDocument, species)) { alert(`${species}의 남은 수량 ${remainingSpeciesQuantity(selectedDocument, species)}마리를 넘어서 기록할 수 없어요.`); return; }
         selectedDocument.quantityChanges = selectedDocument.quantityChanges || [];
-        selectedDocument.quantityChanges.push({ id:String(Date.now()), reason:form.querySelector('#quantity-reason').value, count, memo:form.querySelector('#quantity-memo').value.trim(), createdAt:new Date().toISOString() });
+        selectedDocument.quantityChanges.push({ id:String(Date.now()), species, reason:form.querySelector('#quantity-reason').value, count, memo:form.querySelector('#quantity-memo').value.trim(), createdAt:new Date().toISOString() });
         localStorage.setItem('cites-documents', JSON.stringify(documents));
         form.reset(); form.classList.remove('open'); renderDocuments();
       });
@@ -185,6 +190,8 @@
       app.innerHTML = `<div class="top"><a href="animals.html">← 동물 목록</a><div class="actions"><a class="button" href="animal-register.html">+ 새 동물 등록</a></div></div><article class="hero"><div class="picture">${picture}</div><div><p class="species">${escapeHtml(animal.category)}</p><h1>${escapeHtml(animal.name)}</h1><p class="species">${escapeHtml(animal.species)}</p><span class="status">${escapeHtml(animal.status)}</span></div></article><section><h2>기본 정보</h2><dl><div class="row"><dt>종명</dt><dd>${escapeHtml(animal.species)}</dd></div><div class="row"><dt>생물 종류</dt><dd>${escapeHtml(animal.category)}</dd></div><div class="row"><dt>성별</dt><dd>${escapeHtml(animal.sex)}</dd></div><div class="row"><dt>출생일 또는 입고일</dt><dd>${escapeHtml(animal.date)}</dd></div></dl></section><section><h2>메모</h2><p class="memo">${escapeHtml(animal.memo)}</p></section><section><div class="section-head"><h2>연결 서류</h2><button class="button" type="button" id="document-toggle">+ 서류 연결</button></div><p class="helper">한 장의 서류에 포함된 개체를 함께 선택하세요. 파일은 이 브라우저에만 저장되며, 법률·행정 판단을 대신하지 않습니다.</p><form class="document-form" id="document-form"><div class="field"><label for="document-title">서류 이름</label><input id="document-title" placeholder="예: 수입 허가서 2026-01"></div><div class="field"><label for="document-reference">관리 번호 <span class="helper">(선택)</span></label><input id="document-reference" placeholder="예: CITES-2026-001"></div><div class="field full"><label>연결할 개체</label><div class="animal-checks">${animalOptions}</div></div><div class="field full"><label for="document-file">서류 파일 <span class="helper">(선택 · PDF 또는 이미지, 1MB 이하)</span></label><input class="document-file" id="document-file" type="file" accept="application/pdf,image/*"></div><div class="field full save-row"><button class="cancel" type="button" id="document-cancel">취소</button><button class="button" type="submit">서류 연결 저장</button></div></form><div id="documents" class="records"></div></section><section><div class="section-head"><h2>증식 기록</h2><button class="button" type="button" id="record-toggle">+ 산란·부화 기록 추가</button></div><p class="helper">산란·부화일은 Google Calendar에 함께 추가하고, 사진은 증식신고 자료로 이 기록에 보관할 수 있어요.</p><form class="breeding-form" id="breeding-form"><div class="field"><label for="record-type">기록 종류</label><select id="record-type"><option>산란</option><option>부화</option></select></div><div class="field"><label for="record-date">산란일 또는 부화일</label><input id="record-date" type="date" required></div><div class="field"><label for="eggs">산란 알 수 <span class="helper">(산란 시 필수)</span></label><input id="eggs" inputmode="numeric" placeholder="예: 6"></div><div class="field"><label for="hatchlings">부화 수 <span class="helper">(부화 시 필수)</span></label><input id="hatchlings" inputmode="numeric" placeholder="예: 5"></div><div class="field"><label for="temperature">부화 온도 (℃) <span class="helper">(선택)</span></label><input id="temperature" inputmode="decimal" placeholder="예: 28.5"></div><div class="field"><label for="breeding-photo">기록 사진 <span class="helper">(선택 · 1MB 이하)</span></label><input id="breeding-photo" type="file" accept="image/*"></div><div class="field full"><label class="animal-check"><input id="calendar-event" type="checkbox" checked>이 날짜를 Google Calendar에도 추가</label><p class="helper" id="breeding-calendar-status"></p></div><div class="field full"><label for="breeding-memo">메모</label><textarea id="breeding-memo" placeholder="부화 상태나 증식신고에 참고할 내용을 적어 주세요."></textarea></div><div class="field full save-row"><button class="cancel" type="button" id="record-cancel">취소</button><button class="button" type="submit">기록 저장</button></div></form><div id="records" class="records"></div></section>`;
       document.querySelector('#document-title').parentElement.insertAdjacentHTML('afterend', `<div class="field"><label for="document-species">대상 종</label><input id="document-species" value="${escapeHtml(animal.species)}" placeholder="예: 다이아몬드백테라핀"></div><div class="field"><label for="document-count">처음 관리 수량</label><input id="document-count" type="number" min="1" step="1" value="1" inputmode="numeric"></div>`);
       document.querySelector('#documents').insertAdjacentHTML('afterend', `<div class="section-head" style="margin-top:22px"><h2>서류 수량 관리</h2><button class="button" type="button" id="quantity-toggle">+ 양도·폐사 기록</button></div><p class="helper">양도 또는 폐사한 수량만 기록합니다. 남은 수량이 0마리가 되면 해당 서류는 사용 불가로 표시됩니다.</p><form class="quantity-form" id="quantity-form"><div class="field"><label for="quantity-document">대상 서류</label><select id="quantity-document"></select></div><div class="field"><label for="quantity-reason">감소 사유</label><select id="quantity-reason"><option>양도</option><option>폐사</option><option>기타</option></select></div><div class="field"><label for="quantity-count">감소 수량</label><input id="quantity-count" type="number" min="1" step="1" inputmode="numeric" placeholder="예: 1"></div><div class="field"><label for="quantity-memo">메모 <span class="helper">(선택)</span></label><input id="quantity-memo" placeholder="예: 2026.09.16 양도"></div><div class="field full save-row"><button class="cancel" type="button" id="quantity-cancel">취소</button><button class="button" type="submit">수량 감소 저장</button></div></form>`);
+      document.querySelector('#quantity-document').insertAdjacentHTML('afterend', '<div class="field"><label for="quantity-species">대상 종</label><select id="quantity-species"></select></div>');
+      document.querySelector('#quantity-document').addEventListener('change', updateQuantitySpecies);
       setupDocumentForm(); setupQuantityForm(); renderDocuments(); setupRecordForm(); renderRecords();
     }
   </script>
