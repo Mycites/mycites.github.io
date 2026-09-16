@@ -4,7 +4,7 @@
   const SPREADSHEET_NAME = '사이테스 기록장 데이터';
   const sheetSpecs = [
     { title:'개체', key:'cites-animals', headers:['id','category','species','name','status','sex','date','memo','drivePhotoId','drivePhotoUrl','createdAt'] },
-    { title:'서류', key:'cites-documents', headers:['id','title','species','initialCount','quantityChanges','reference','animalIds','fileName','driveFileId','driveFileUrl','createdAt'] },
+    { title:'서류', key:'cites-documents', headers:['id','title','species','speciesEntries','initialCount','quantityChanges','reference','animalIds','fileName','driveFileId','driveFileUrl','createdAt'] },
     { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','type','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','photoName','drivePhotoId','drivePhotoUrl','createdAt'] }
   ];
   const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records'];
@@ -107,7 +107,7 @@
       const item = {};
       headers.forEach((header, index) => {
         let value = row[index] ?? '';
-        if (header === 'animalIds' || header === 'quantityChanges') { try { value = value ? JSON.parse(value) : []; } catch { value = []; } }
+        if (header === 'animalIds' || header === 'quantityChanges' || header === 'speciesEntries') { try { value = value ? JSON.parse(value) : []; } catch { value = []; } }
         if (header === 'initialCount') value = Number(value || 0);
         item[header] = value;
       });
