@@ -3,7 +3,7 @@
   const SYNC_SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.events';
   const SPREADSHEET_NAME = '사이테스 기록장 데이터';
   const sheetSpecs = [
-    { title:'개체', key:'cites-animals', headers:['id','category','species','name','status','sex','date','memo','drivePhotoId','drivePhotoUrl','createdAt'] },
+    { title:'개체', key:'cites-animals', headers:['id','category','species','scientificName','name','status','sex','date','memo','drivePhotoId','drivePhotoUrl','createdAt'] },
     { title:'서류', key:'cites-documents', headers:['id','title','species','speciesEntries','initialCount','quantityChanges','reference','animalIds','fileName','driveFileId','driveFileUrl','createdAt'] },
     { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','type','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','photoName','drivePhotoId','drivePhotoUrl','createdAt'] }
   ];

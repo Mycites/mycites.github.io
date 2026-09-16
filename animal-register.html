@@ -36,7 +36,7 @@
             <div class="field"><label for="animal-name">이름 또는 관리 번호 <span class="required">*</span></label><input id="animal-name" placeholder="예: 테라 또는 2026-01" required></div>
             <div class="field"><label for="status">보유 상태 <span class="required">*</span></label><select id="status" required><option value="보유 중">보유 중</option><option value="양도 예정">양도 예정</option><option value="양도 완료">양도 완료</option></select></div>
           </div>
-          <div class="optional"><h3>선택 정보</h3><div class="form-grid"><div class="field"><label for="sex">성별</label><select id="sex"><option value="미입력">미입력</option><option>수컷</option><option>암컷</option><option>미상</option></select></div><div class="field"><label for="date">출생일 또는 입고일</label><input id="date" type="date"></div><div class="field full"><label for="memo">메모</label><textarea id="memo" placeholder="특징, 건강 상태 등 기억할 내용을 적어 주세요."></textarea></div></div></div>
+          <div class="field" style="margin-top:17px"><label for="scientific-name">학명 (선택)</label><select id="scientific-name" aria-describedby="scientific-name-help"><option value="">미입력</option></select><p id="scientific-name-help" class="screen-intro" aria-live="polite"></p></div><div class="optional"><h3>선택 정보</h3><div class="form-grid"><div class="field"><label for="sex">성별</label><select id="sex"><option value="미입력">미입력</option><option>수컷</option><option>암컷</option><option>미상</option></select></div><div class="field"><label for="date">출생일 또는 입고일</label><input id="date" type="date"></div><div class="field full"><label for="memo">메모</label><textarea id="memo" placeholder="특징, 건강 상태 등 기억할 내용을 적어 주세요."></textarea></div></div></div>
         </section>
 
         <section class="screen" data-screen="2">
@@ -47,7 +47,7 @@
 
         <section class="screen" data-screen="3">
           <h2>등록 내용을 확인해 주세요</h2><p class="screen-intro">아래 내용은 다음 단계에서 실제 저장 기능과 연결됩니다.</p>
-          <div class="summary"><div class="summary-item"><span>생물 종류</span><b id="summary-category">-</b></div><div class="summary-item"><span>종명</span><b id="summary-species">-</b></div><div class="summary-item"><span>이름 또는 관리 번호</span><b id="summary-name">-</b></div><div class="summary-item"><span>보유 상태</span><b id="summary-status">-</b></div><div class="summary-item"><span>대표 사진</span><b id="summary-photo">미등록</b></div></div>
+          <div class="summary"><div class="summary-item"><span>생물 종류</span><b id="summary-category">-</b></div><div class="summary-item"><span>종명</span><b id="summary-species">-</b></div><div class="summary-item"><span>학명</span><b id="summary-scientific-name">미입력</b></div><div class="summary-item"><span>이름 또는 관리 번호</span><b id="summary-name">-</b></div><div class="summary-item"><span>보유 상태</span><b id="summary-status">-</b></div><div class="summary-item"><span>대표 사진</span><b id="summary-photo">미등록</b></div></div>
         </section>
 
         <div class="actions"><button class="prev hidden" type="button" id="prev">이전</button><button class="next" type="button" id="next">다음</button><button class="done" type="button" id="done" hidden>등록 완료</button></div>
@@ -63,6 +63,36 @@
     const next = document.querySelector('#next');
     const done = document.querySelector('#done');
     const tip = document.querySelector('#tip-text');
+    const scientificName = document.querySelector('#scientific-name');
+    const normalizeSpecies = value => String(value || '').replace(/\s+/g, '').toLowerCase();
+    function updateScientificNames() {
+      const previousValue = scientificName.value;
+      const species = normalizeSpecies(document.querySelector('#species').value);
+      const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
+      const names = new Map();
+      documents.forEach(item => {
+        const entries = item.speciesEntries?.length ? item.speciesEntries : [item];
+        entries.forEach(entry => {
+          const name = String(entry.scientificName || '').trim().replace(/\s+/g, ' ');
+          if (species && normalizeSpecies(entry.species) === species && name) {
+            const key = name.toLowerCase();
+            if (!names.has(key)) names.set(key, name);
+          }
+        });
+      });
+      scientificName.replaceChildren(new Option('미입력', ''));
+      [...names.values()].sort().forEach(name => scientificName.add(new Option(name, name)));
+      scientificName.value = names.get(previousValue.toLowerCase()) || '';
+      scientificName.disabled = names.size === 0;
+      document.querySelector('#scientific-name-help').textContent = !species
+        ? '종명을 입력하면 서류에 등록한 학명을 선택할 수 있어요.'
+        : names.size ? '이 종의 서류에 등록된 학명을 선택해 주세요.'
+        : '이 종에 등록된 학명이 없습니다. 서류 등록에서 학명을 입력하면 선택할 수 있어요. 지금은 미입력으로 등록할 수 있습니다.';
+    }
+    document.querySelector('#species').addEventListener('input', updateScientificNames);
+    window.addEventListener('pageshow', updateScientificNames);
+    window.addEventListener('storage', event => { if (event.key === 'cites-documents') updateScientificNames(); });
+    updateScientificNames();
     let current = 1;
     const tips = { 1:'처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.', 2:'사진은 나중에 추가할 수 있습니다. 지금은 대표 사진 한 장이면 충분해요.', 3:'내용을 확인한 뒤 등록을 완료하면 다음 단계에서 목록과 상세 화면에 연결됩니다.' };
     function showStep(step) {
@@ -78,6 +108,7 @@
     function updateSummary() {
       document.querySelector('#summary-category').textContent = document.querySelector('#category').value || '-';
       document.querySelector('#summary-species').textContent = document.querySelector('#species').value || '-';
+      document.querySelector('#summary-scientific-name').textContent = scientificName.value || '미입력';
       document.querySelector('#summary-name').textContent = document.querySelector('#animal-name').value || '-';
       document.querySelector('#summary-status').textContent = document.querySelector('#status').value || '-';
       document.querySelector('#summary-photo').textContent = document.querySelector('#photo').files.length ? '사진 1장 선택됨' : '미등록';
@@ -101,6 +132,7 @@
         id: String(Date.now()),
         category: document.querySelector('#category').value,
         species: document.querySelector('#species').value.trim(),
+        scientificName: scientificName.value,
         name: document.querySelector('#animal-name').value.trim(),
         status: document.querySelector('#status').value,
         sex: document.querySelector('#sex').value,
