@@ -137,11 +137,17 @@
     setStatus('Google 계정이 연결되었습니다. 필요한 항목을 백업할 수 있습니다.');
   };
   const requestAccess = callback => {
-    tokenClient.callback = response => {
-      if (response.error) { setStatus('Google 연결이 취소되었거나 허용되지 않았습니다.'); return; }
-      accessToken = response.access_token; showConnected(); callback?.();
+    const request = prompt => {
+      tokenClient.callback = response => {
+        if (response.error) {
+          if (prompt === '' && ['interaction_required', 'consent_required'].includes(response.error)) { request('consent'); return; }
+          setStatus('Google 연결이 취소되었거나 허용되지 않았습니다.'); return;
+        }
+        accessToken = response.access_token; showConnected(); callback?.();
+      };
+      tokenClient.requestAccessToken({ prompt });
     };
-    tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+    request('');
   };
   const setCalendarMessage = message => { const target = byId('calendar-message'); if (target) target.textContent = message; };
   const nextDay = value => {
@@ -162,11 +168,17 @@
   };
   const requestCalendarAccess = () => {
     if (!calendarTokenClient) { setCalendarMessage('Google 로그인 준비가 끝날 때까지 잠시 기다려 주세요.'); return; }
-    calendarTokenClient.callback = response => {
-      if (response.error) { setCalendarMessage('Calendar 권한이 허용되지 않았습니다.'); return; }
-      accessToken = response.access_token; calendarAuthorized = true; createCalendarEvent();
+    const request = prompt => {
+      calendarTokenClient.callback = response => {
+        if (response.error) {
+          if (prompt === '' && ['interaction_required', 'consent_required'].includes(response.error)) { request('consent'); return; }
+          setCalendarMessage('Calendar 권한이 허용되지 않았습니다.'); return;
+        }
+        accessToken = response.access_token; calendarAuthorized = true; createCalendarEvent();
+      };
+      calendarTokenClient.requestAccessToken({ prompt });
     };
-    calendarTokenClient.requestAccessToken({ prompt:calendarAuthorized ? '' : 'consent' });
+    request('');
   };
   const setupCalendar = () => {
     const form = byId('calendar-form');
