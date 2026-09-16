@@ -179,6 +179,7 @@
   };
   const requestCalendarAccess = () => {
     if (!tokenClient) { setCalendarMessage('Google 로그인 준비가 끝날 때까지 잠시 기다려 주세요.'); return; }
+    if (accessToken) { createCalendarEvent(); return; }
     requestAccess(createCalendarEvent);
   };
   const setupCalendar = () => {
