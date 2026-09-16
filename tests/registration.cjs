@@ -85,23 +85,53 @@ function unitTests() {
 
     // Build synthetic fixtures in memory; no user records or documents are used.
     const fixturePage = await browser.newPage();
-    await fixturePage.setContent('<html><body style="font:28px Arial;padding:30px"><p>테라핀 Malaclemys terrapin 2</p><p>거북이 Testudo graeca 3</p></body></html>');
+    await fixturePage.setContent('<html><body style="font:28px Arial;padding:30px"><p>서류 이름: 야생생물 수입 허가서</p><p>허가번호: KR-2026-001</p><p>테라핀 Malaclemys terrapin 2</p><p>거북이 Testudo graeca 3</p></body></html>');
     const pdfBuffer = await fixturePage.pdf({format:'A4'});
-    await fixturePage.setViewportSize({width:1200, height:400});
-    await fixturePage.setContent('<html><body style="margin:0;background:white;font:44px Arial;padding:40px"><p>테라핀 Malaclemys terrapin 2</p><p>거북이 Testudo graeca 3</p></body></html>');
+    await fixturePage.setViewportSize({width:1200, height:600});
+    await fixturePage.setContent('<html><body style="margin:0;background:white;font:44px Arial;padding:40px"><p>IMPORT PERMIT</p><p>Permit No: KR-2026-001</p><p>테라핀 Malaclemys terrapin 2</p><p>거북이 Testudo graeca 3</p></body></html>');
     const imageBuffer = await fixturePage.screenshot();
     await fixturePage.setContent(`<html><body style="margin:0"><img style="width:100%" src="data:image/png;base64,${imageBuffer.toString('base64')}"></body></html>`);
     const scannedPdf = await fixturePage.pdf({format:'A4'});
     await fixturePage.close();
 
     await page.goto(`${base}/documents.html`); await page.locator('#document-toggle').click();
+    const metadataCases = await page.evaluate(() => [
+      CitesDocumentExtract.parseMetadata('문서명: 수입허가서\n관리번호: A-2026-12'),
+      CitesDocumentExtract.parseMetadata('수출 허가서\n발급 번호\nKR-2026-02'),
+      CitesDocumentExtract.parseMetadata('IMPORT PERMIT\nPermit No: US-01\nCertificate number: US-02'),
+      CitesDocumentExtract.parseMetadata('촬영일 2026-09-17\n테라핀 Malaclemys terrapin 2')
+    ]);
+    assert.deepEqual(metadataCases[0], {titles:['수입허가서'],references:['A-2026-12']});
+    assert.equal(metadataCases[1].references[0], 'KR-2026-02');
+    assert.equal(metadataCases[2].references.length, 2);
+    assert.deepEqual(metadataCases[3], {titles:[],references:[]});
+    const manual = await browser.newPage(); const manualRequests = [];
+    manual.on('request', request => { if (!request.url().startsWith(base)) manualRequests.push(request.url()); });
+    await manual.goto(base + '/documents.html'); await manual.locator('#document-toggle').click();
+    await manual.locator('#document-file').setInputFiles({name:'manual.png',mimeType:'image/png',buffer:imageBuffer});
+    assert.equal(await manual.locator('#extract-choice').isVisible(), true);
+    await manual.locator('#extract-manual').click();
+    assert.equal(await manual.locator('#extract-review').isVisible(), false);
+    await manual.locator('#document-title').fill('수동 서류'); await manual.locator('#document-reference').fill('MANUAL-1');
+    await manual.locator('.species-name').fill('테라핀');
+    await Promise.all([manual.waitForEvent('domcontentloaded'), manual.locator('button[type=submit]').click()]);
+    assert.equal(await manual.evaluate(() => JSON.parse(localStorage.getItem('cites-documents'))[0].reference), 'MANUAL-1');
+    assert.deepEqual(manualRequests, []); await manual.close();
+    console.log('PASS manual save without OCR/network, Korean/English/multiline metadata, no false date reference');
     const parse = await page.evaluate(() => CitesDocumentExtract.parseSpecies('테라핀 Malaclemys terrapin 2\n거북이 Testudo graeca 수량: 3\nScientific name\nMalaclemys terrapin quantity: 4'));
     assert.equal(parse.length, 3); assert.equal(parse[0].species, '테라핀'); assert.equal(parse[0].count, 2); assert.equal(parse[1].count, 3); assert.equal(parse[2].count, 4);
     await page.locator('#document-file').setInputFiles({name:'text.pdf',mimeType:'application/pdf',buffer:pdfBuffer});
-    await page.locator('#extract-start').click();
+    assert.equal(await page.locator('#extract-choice').isVisible(), true);
+    await page.locator('#extract-auto').click();
     await page.waitForFunction(() => !document.getElementById('extract-start').disabled, null, { timeout:180000 });
     assert.match(await page.locator('#extract-status').innerText(), /추출 완료/);
     assert.match(await page.locator('#extract-text').inputValue(), /Malaclemys terrapin/);
+    assert.equal(await page.locator('#extract-title').inputValue(), '야생생물 수입 허가서');
+    assert.equal(await page.locator('#extract-reference').inputValue(), 'KR-2026-001');
+    assert.equal(await page.locator('#document-title').inputValue(), '');
+    await page.locator('#extract-metadata-apply').click();
+    assert.equal(await page.locator('#document-title').inputValue(), '야생생물 수입 허가서');
+    assert.equal(await page.locator('#document-reference').inputValue(), 'KR-2026-001');
     assert.equal(await page.locator('#extract-suggestions .extract-row').count(), 2);
     await page.locator('#extract-apply').click();
     assert.equal(await page.locator('.species-entry').count(), 2);
@@ -119,8 +149,24 @@ function unitTests() {
       await page.waitForFunction(() => !document.getElementById('extract-start').disabled, null, { timeout:180000 });
       assert.match(await page.locator('#extract-status').innerText(), /추출 완료/);
       assert.match(await page.locator('#extract-text').inputValue(), /Malaclemys\s+terrapin/i);
-      console.log(`PASS real OCR ${name}`);
+      if (!force) assert.equal(await page.locator('#extract-reference').inputValue(), 'KR-2026-001');
+      else assert.match(await page.locator('#extract-text').inputValue(), /2026-001/); // OCR may misread KR; do not invent a corrected identifier.
+      assert.equal(await page.locator('#extract-reference-use').isChecked(), false);
+      assert.equal(await page.locator('#document-reference').inputValue(), 'KR-2026-001');
+      console.log(`PASS real OCR and reference extraction ${name}`);
     }
+    await page.locator('#extract-reference').fill('CORRECTED-2');
+    await page.locator('#extract-metadata-apply').click();
+    assert.equal(await page.locator('#document-reference').inputValue(), 'KR-2026-001');
+    await page.locator('#extract-reference-use').check(); await page.locator('#extract-metadata-apply').click();
+    assert.equal(await page.locator('#document-reference').inputValue(), 'CORRECTED-2');
+    await page.locator('summary').filter({hasText:'추출문 보기'}).click();
+    await page.locator('#extract-text').fill('IMPORT PERMIT\nPermit No: A-1\nCertificate No: B-2');
+    await page.locator('#extract-reparse').click();
+    assert.equal(await page.locator('#extract-reference').inputValue(), '');
+    assert.equal(await page.locator('#extract-reference-options option').count(), 2);
+    assert.equal(await page.locator('#document-reference').inputValue(), 'CORRECTED-2');
+    console.log('PASS preserve existing fields, explicit overwrite, ambiguous reference selection');
     await page.locator('#document-file').setInputFiles({name:'broken.pdf',mimeType:'application/pdf',buffer:Buffer.from('not a PDF')});
     await page.locator('#extract-start').click();
     await page.waitForFunction(() => !document.getElementById('extract-start').disabled);

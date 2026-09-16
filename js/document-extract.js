@@ -126,7 +126,40 @@
     }
     return rows;
   }
+  function parseMetadata(text) {
+    const lines = text.split(/\r?\n/).map(line => line.trim().replace(/\s+/g, ' ')).filter(Boolean);
+    const titles = [], references = [];
+    const titleLabel = /^(?:서\s*류\s*(?:이\s*름|명)|문\s*서\s*명|제\s*목|document\s*(?:title|name))\s*[:：]?\s*/i;
+    const referenceLabel = /(?:관\s*리|허\s*가|발\s*급|승\s*인|신\s*고|증\s*명\s*서)\s*번\s*호|(?:permit|certificate|reference|document)\s*(?:no\.?|number)|허\s*가\s*서\s*번\s*호/gi;
+    const add = (list, value) => { if (value && !list.includes(value)) list.push(value); };
+    lines.forEach((line, index) => {
+      if (titleLabel.test(line)) {
+        const value = line.replace(titleLabel, '').trim() || lines[index + 1] || '';
+        if (!/(?:번호|number|\bno\.)/i.test(value)) add(titles, value.slice(0, 160));
+      } else if (line.length <= 120 && /(?:허\s*가\s*서|증\s*명\s*서|신\s*고\s*(?:서|필증)|확\s*인\s*서|양\s*도\s*양\s*수\s*서|\b(?:import|export|re-export)\s+permit\b|\bcertificate\b)/i.test(line) && !/(?:번호|\bno\.?\s*[:\d]|number)/i.test(line)) {
+        add(titles, line);
+      }
+      for (const match of line.matchAll(referenceLabel)) {
+        const tail = line.slice(match.index + match[0].length).replace(/^\s*[:：#.-]?\s*/, '') || lines[index + 1] || '';
+        const value = tail.match(/^(?:제\s*)?([A-Za-z가-힣0-9][A-Za-z가-힣0-9._/\-]*(?:\s*-\s*[A-Za-z가-힣0-9]+)*)(?:\s*호)?/u)?.[1];
+        if (value && /\d/.test(value) && value.length >= 2) add(references, value.replace(/\s*-\s*/g, '-').replace(/호$/, ''));
+      }
+    });
+    return { titles, references };
+  }
+  function showMetadata() {
+    const { titles, references } = parseMetadata(byId('extract-text').value);
+    [['title', titles], ['reference', references]].forEach(([key, values]) => {
+      const list = byId(`extract-${key}-options`); list.replaceChildren();
+      values.forEach(value => list.append(new Option(value, value)));
+      byId(`extract-${key}`).value = values.length === 1 ? values[0] : '';
+      byId(`extract-${key}-use`).checked = values.length === 1 && !byId(`document-${key}`).value.trim();
+      byId(`extract-${key}-current`).textContent = `현재 입력: ${byId(`document-${key}`).value.trim() || '없음'}${values.length > 1 ? ' · 후보가 여러 개입니다. 입력칸에서 선택하거나 수정하세요.' : ''}`;
+    });
+    byId('extract-metadata-help').textContent = '서류 제목과 관리·허가·발급번호를 찾은 결과입니다. 찾지 못한 항목은 비워 두며, 여러 후보가 있으면 직접 선택해 주세요.';
+  }
   function showSuggestions() {
+    showMetadata();
     const target = byId('extract-suggestions'); target.replaceChildren();
     const rows = parseSpecies(byId('extract-text').value);
     rows.forEach(entry => {
@@ -147,6 +180,7 @@
   }
   async function start(forceOcr) {
     if (activeJob) return;
+    byId('extract-choice').hidden = true;
     const file = byId('document-file').files[0];
     if (!file) { status('먼저 서류 파일을 선택해 주세요.'); return; }
     if (file.size > 1024 * 1024) { status('현재 서류 저장 한도인 1MB 이하의 파일을 선택해 주세요.'); return; }
@@ -168,6 +202,27 @@
     }
   }
   byId('extract-start').addEventListener('click', () => start(false));
+  byId('extract-auto').addEventListener('click', () => start(false));
+  ['title', 'reference'].forEach(key => byId(`document-${key}`).addEventListener('input', () => {
+    byId(`extract-${key}-use`).checked = false;
+    byId(`extract-${key}-current`).textContent = `현재 입력: ${byId(`document-${key}`).value.trim() || '없음'}`;
+  }));
+  byId('extract-manual').addEventListener('click', () => {
+    byId('extract-choice').hidden = true;
+    status('자동 읽기 없이 직접 입력합니다. 필요하면 나중에 PDF·이미지 자동 추출을 눌러 주세요.');
+    byId('document-title').focus();
+  });
+  byId('extract-metadata-apply').addEventListener('click', () => {
+    const keys = ['title', 'reference'].filter(key => byId(`extract-${key}-use`).checked);
+    if (!keys.length) { status('반영할 서류 이름 또는 관리번호를 체크해 주세요.'); return; }
+    if (keys.some(key => !byId(`extract-${key}`).value.trim())) { status('체크한 항목의 후보 값을 입력해 주세요. 기존 값은 지우지 않았습니다.'); return; }
+    keys.forEach(key => {
+      byId(`document-${key}`).value = byId(`extract-${key}`).value.trim();
+      byId(`extract-${key}-current`).textContent = `현재 입력: ${byId(`document-${key}`).value}`;
+      byId(`extract-${key}-use`).checked = false;
+    });
+    status('선택한 서류 이름·관리번호를 반영했습니다. 나머지 항목을 확인한 뒤 저장해 주세요.');
+  });
   byId('extract-ocr').addEventListener('click', () => start(true));
   byId('extract-cancel').addEventListener('click', () => cancel());
   byId('extract-reparse').addEventListener('click', showSuggestions);
@@ -184,8 +239,16 @@
   });
   function reset() {
     cancel(''); byId('extract-review').hidden = true; byId('extract-text').value = ''; byId('extract-suggestions').replaceChildren();
+    byId('extract-choice').hidden = true;
+    ['title', 'reference'].forEach(key => { byId(`extract-${key}`).value = ''; byId(`extract-${key}-use`).checked = false; byId(`extract-${key}-options`).replaceChildren(); });
   }
-  byId('document-file').addEventListener('change', reset);
+  byId('document-file').addEventListener('change', () => {
+    reset();
+    if (byId('document-file').files.length) {
+      byId('extract-choice').hidden = false;
+      byId('extract-manual').focus();
+    }
+  });
   byId('document-form').addEventListener('reset', reset);
-  window.CitesDocumentExtract = { parseSpecies, textLines };
+  window.CitesDocumentExtract = { parseSpecies, parseMetadata, textLines };
 })();
