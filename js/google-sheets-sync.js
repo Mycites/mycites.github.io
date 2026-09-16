@@ -1,6 +1,7 @@
 (() => {
   const CLIENT_ID = '815518831853-jm9apbu6j94cndmvqpk28i879mor0v91.apps.googleusercontent.com';
-  const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+  const SYNC_SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+  const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
   const SPREADSHEET_NAME = '사이테스 기록장 데이터';
   const sheetSpecs = [
     { title:'개체', key:'cites-animals', headers:['id','category','species','name','status','sex','date','memo','drivePhotoId','drivePhotoUrl','createdAt'] },
@@ -10,6 +11,8 @@
   const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records'];
   let accessToken = '';
   let tokenClient;
+  let calendarTokenClient;
+  let calendarAuthorized = false;
   const byId = id => document.querySelector(`#${id}`);
   const setStatus = message => { const status = byId('sync-status'); if (status) status.textContent = message; };
   const setBusy = (button, busy) => { if (button) button.disabled = busy; };
@@ -140,6 +143,37 @@
     };
     tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
   };
+  const setCalendarMessage = message => { const target = byId('calendar-message'); if (target) target.textContent = message; };
+  const nextDay = value => {
+    const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const createCalendarEvent = async () => {
+    const form = byId('calendar-form');
+    const title = byId('calendar-title').value.trim();
+    const date = byId('calendar-date').value;
+    if (!title || !date) { setCalendarMessage('일정 제목과 날짜를 입력해 주세요.'); return; }
+    try {
+      setCalendarMessage('Google Calendar에 일정을 추가하는 중입니다…');
+      const kind = byId('calendar-kind').value;
+      await api('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', body:JSON.stringify({ summary:`[사이테스 기록장] ${kind}: ${title}`, description:byId('calendar-note').value.trim(), start:{ date }, end:{ date:nextDay(date) } }) });
+      form.reset(); form.classList.remove('open'); setCalendarMessage('Google Calendar에 일정이 추가되었습니다.');
+    } catch (error) { setCalendarMessage(`일정을 추가하지 못했습니다: ${error.message}`); }
+  };
+  const requestCalendarAccess = () => {
+    if (!calendarTokenClient) { setCalendarMessage('Google 로그인 준비가 끝날 때까지 잠시 기다려 주세요.'); return; }
+    calendarTokenClient.callback = response => {
+      if (response.error) { setCalendarMessage('Calendar 권한이 허용되지 않았습니다.'); return; }
+      accessToken = response.access_token; calendarAuthorized = true; createCalendarEvent();
+    };
+    calendarTokenClient.requestAccessToken({ prompt:calendarAuthorized ? '' : 'consent' });
+  };
+  const setupCalendar = () => {
+    const form = byId('calendar-form');
+    byId('calendar-toggle').addEventListener('click', () => form.classList.add('open'));
+    byId('calendar-cancel').addEventListener('click', () => { form.reset(); form.classList.remove('open'); });
+    form.addEventListener('submit', event => { event.preventDefault(); requestCalendarAccess(); });
+  };
   const exportData = () => {
     const data = { format:'cites-backup-v1', exportedAt:new Date().toISOString(), records:Object.fromEntries(transferKeys.map(key => [key, JSON.parse(localStorage.getItem(key) || '[]')])) };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
@@ -174,12 +208,14 @@
     byId('import-file').addEventListener('change', importData);
   };
   setupTransfer();
+  setupCalendar();
   window.googleIdentityReady = () => {
     const connect = byId('google-connect');
     const sync = byId('google-sync');
     const drive = byId('google-drive');
     const restoreButton = byId('google-restore');
-    tokenClient = google.accounts.oauth2.initTokenClient({ client_id:CLIENT_ID, scope:SCOPES, callback:'' });
+    tokenClient = google.accounts.oauth2.initTokenClient({ client_id:CLIENT_ID, scope:SYNC_SCOPES, callback:'' });
+    calendarTokenClient = google.accounts.oauth2.initTokenClient({ client_id:CLIENT_ID, scope:CALENDAR_SCOPE, callback:'' });
     connect.disabled = false; connect.textContent = 'Google 계정 연결';
     connect.addEventListener('click', () => requestAccess());
     sync.addEventListener('click', () => requestAccess(backup));
