@@ -121,7 +121,6 @@
   };
   const setupTransfer = () => {
     byId('export-data').addEventListener('click', exportData);
-    byId('import-data').addEventListener('click', () => byId('import-file').click());
     byId('import-file').addEventListener('change', importData);
   };
   setupTransfer();
