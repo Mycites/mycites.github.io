@@ -5,7 +5,7 @@
   const sheetSpecs = [
     { title:'개체', key:'cites-animals', headers:['id','category','species','name','status','sex','date','memo','drivePhotoId','drivePhotoUrl','createdAt'] },
     { title:'서류', key:'cites-documents', headers:['id','title','species','initialCount','quantityChanges','reference','animalIds','fileName','driveFileId','driveFileUrl','createdAt'] },
-    { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','createdAt'] }
+    { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','type','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','photoName','drivePhotoId','drivePhotoUrl','createdAt'] }
   ];
   const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records'];
   let accessToken = '';
@@ -63,6 +63,7 @@
       const folderId = await findOrCreateDriveFolder();
       const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
       const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
+      const breedingRecords = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
       let uploaded = 0;
       for (const animal of animals) {
         if (!animal.photo || animal.drivePhotoId) continue;
@@ -74,8 +75,14 @@
         const file = await uploadDataUrl(document.fileData, safeName(document.fileName || `${document.title}.pdf`), folderId);
         document.driveFileId = file.id; document.driveFileUrl = file.webViewLink || `https://drive.google.com/open?id=${file.id}`; uploaded += 1;
       }
+      for (const record of breedingRecords) {
+        if (!record.photo || record.drivePhotoId) continue;
+        const file = await uploadDataUrl(record.photo, `증식_${safeName(record.type || '기록')}_${record.id}.jpg`, folderId);
+        record.drivePhotoId = file.id; record.drivePhotoUrl = file.webViewLink || `https://drive.google.com/open?id=${file.id}`; uploaded += 1;
+      }
       localStorage.setItem('cites-animals', JSON.stringify(animals));
       localStorage.setItem('cites-documents', JSON.stringify(documents));
+      localStorage.setItem('cites-breeding-records', JSON.stringify(breedingRecords));
       await backup();
       setStatus(uploaded ? `${uploaded}개 파일을 Drive에 백업하고 Sheets 기록도 갱신했습니다.` : '새로 올릴 파일은 없으며 Sheets 기록을 갱신했습니다.');
     } catch (error) { setStatus(`Drive 백업하지 못했습니다: ${error.message}`); }
@@ -154,7 +161,8 @@
     const empty = byId('calendar-empty');
     if (!target || !empty) return;
     empty.hidden = list.length > 0;
-    target.innerHTML = list.slice(0, 4).map(event => `<div class="record"><span class="record-icon">📅</span><div><b>${escapeHtml(event.kind)} · ${escapeHtml(event.title)}</b><span>${escapeHtml(event.date)}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</span></div></div>`).join('');
+    target.innerHTML = list.slice(0, 4).map(event => `<div class="calendar-record"><div class="record"><span class="record-icon">📅</span><div><b>${escapeHtml(event.kind)} · ${escapeHtml(event.title)}</b><span>${escapeHtml(event.date)}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</span></div></div><button class="calendar-delete" type="button" data-calendar-id="${escapeHtml(event.id)}">삭제</button></div>`).join('');
+    target.querySelectorAll('[data-calendar-id]').forEach(button => button.addEventListener('click', () => deleteCalendarEvent(button.dataset.calendarId)));
   };
   const nextDay = value => {
     const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1);
@@ -181,6 +189,19 @@
     if (!tokenClient) { setCalendarMessage('Google 로그인 준비가 끝날 때까지 잠시 기다려 주세요.'); return; }
     if (accessToken) { createCalendarEvent(); return; }
     requestAccess(createCalendarEvent);
+  };
+  const deleteCalendarEvent = eventId => {
+    if (!confirm('이 일정을 Google Calendar와 기록장에서 삭제할까요?')) return;
+    const remove = async () => {
+      try {
+        if (eventId) await api(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`, { method:'DELETE' });
+        const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]').filter(event => event.id !== eventId);
+        localStorage.setItem('cites-calendar-events', JSON.stringify(events));
+        renderCalendarEvents(); setCalendarMessage('일정을 삭제했습니다.');
+      } catch (error) { setCalendarMessage(`일정을 삭제하지 못했습니다: ${error.message}`); }
+    };
+    if (accessToken) { remove(); return; }
+    requestAccess(remove);
   };
   const setupCalendar = () => {
     const form = byId('calendar-form');
