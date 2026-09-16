@@ -172,7 +172,11 @@
   const isBreedingKind = kind => kind === '산란' || kind === '부화';
   const updateCalendarBreedingFields = () => {
     const kind = byId('calendar-kind').value;
-    byId('calendar-breeding-fields').hidden = !isBreedingKind(kind);
+    const breeding = isBreedingKind(kind);
+    byId('calendar-breeding-fields').hidden = !breeding;
+    byId('calendar-eggs-field').hidden = kind !== '산란';
+    byId('calendar-hatchlings-field').hidden = kind !== '부화';
+    byId('calendar-temperature-field').hidden = kind !== '부화';
   };
   const populateCalendarAnimals = () => {
     const select = byId('calendar-animal');
