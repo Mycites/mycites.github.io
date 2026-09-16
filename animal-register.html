@@ -18,6 +18,7 @@
     .actions { display:flex; justify-content:space-between; gap:12px; margin-top:30px; padding-top:22px; border-top:1px solid var(--line); } button { padding:12px 17px; border:1px solid transparent; border-radius:10px; font:inherit; font-weight:750; cursor:pointer; } .prev { color:#45665a; border-color:#cbdad3; background:#fff; } .next, .done { color:#fff; background:var(--green); } .next:hover, .done:hover { background:#105d49; } .hidden { visibility:hidden; }
     @media (max-width:760px) { main { padding:22px 16px 44px; } .top { margin-bottom:25px; } .title-row { align-items:start; flex-direction:column; } .layout { grid-template-columns:1fr; } .tip { order:-1; } .turtle { display:none; } .form-card { padding:21px; } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .steps { font-size:.78rem; } .step { padding:10px 8px; } }
     @media (max-width:380px) { .form-card { padding:18px; } .steps { gap:4px; font-size:.7rem; } .step { padding:9px 5px; } .actions { align-items:stretch; flex-direction:column-reverse; } .actions button { width:100%; min-height:46px; } .actions .hidden { display:none; } }
+    .document-candidate { display:flex; align-items:start; gap:10px; padding:12px; margin-top:8px; border:1px solid var(--line); border-radius:10px; overflow-wrap:anywhere; } .document-candidate input { width:auto; margin-top:5px; } .document-candidate small { display:block; color:var(--muted); font-weight:400; }
   </style>
 </head>
 <body>
@@ -36,7 +37,7 @@
             <div class="field"><label for="animal-name">이름 또는 관리 번호 <span class="required">*</span></label><input id="animal-name" placeholder="예: 테라 또는 2026-01" required></div>
             <div class="field"><label for="status">보유 상태 <span class="required">*</span></label><select id="status" required><option value="보유 중">보유 중</option><option value="양도 예정">양도 예정</option><option value="양도 완료">양도 완료</option></select></div>
           </div>
-          <div class="field" style="margin-top:17px"><label for="scientific-name">학명 (선택)</label><select id="scientific-name" aria-describedby="scientific-name-help"><option value="">미입력</option></select><p id="scientific-name-help" class="screen-intro" aria-live="polite"></p></div><div class="optional"><h3>선택 정보</h3><div class="form-grid"><div class="field"><label for="sex">성별</label><select id="sex"><option value="미입력">미입력</option><option>수컷</option><option>암컷</option><option>미상</option></select></div><div class="field"><label for="date">출생일 또는 입고일</label><input id="date" type="date"></div><div class="field full"><label for="memo">메모</label><textarea id="memo" placeholder="특징, 건강 상태 등 기억할 내용을 적어 주세요."></textarea></div></div></div>
+          <div class="field" style="margin-top:17px"><label for="scientific-name">학명 (선택)</label><select id="scientific-name" aria-describedby="scientific-name-help"><option value="">미입력</option></select><p id="scientific-name-help" class="screen-intro" aria-live="polite"></p></div><div class="optional"><h3>연결할 서류 (선택)</h3><p id="document-candidate-help" class="screen-intro" aria-live="polite"></p><div id="document-candidates"></div></div><div class="optional"><h3>선택 정보</h3><div class="form-grid"><div class="field"><label for="sex">성별</label><select id="sex"><option value="미입력">미입력</option><option>수컷</option><option>암컷</option><option>미상</option></select></div><div class="field"><label for="date">출생일 또는 입고일</label><input id="date" type="date"></div><div class="field full"><label for="memo">메모</label><textarea id="memo" placeholder="특징, 건강 상태 등 기억할 내용을 적어 주세요."></textarea></div></div></div>
         </section>
 
         <section class="screen" data-screen="2">
@@ -46,8 +47,8 @@
         </section>
 
         <section class="screen" data-screen="3">
-          <h2>등록 내용을 확인해 주세요</h2><p class="screen-intro">아래 내용은 다음 단계에서 실제 저장 기능과 연결됩니다.</p>
-          <div class="summary"><div class="summary-item"><span>생물 종류</span><b id="summary-category">-</b></div><div class="summary-item"><span>종명</span><b id="summary-species">-</b></div><div class="summary-item"><span>학명</span><b id="summary-scientific-name">미입력</b></div><div class="summary-item"><span>이름 또는 관리 번호</span><b id="summary-name">-</b></div><div class="summary-item"><span>보유 상태</span><b id="summary-status">-</b></div><div class="summary-item"><span>대표 사진</span><b id="summary-photo">미등록</b></div></div>
+          <h2>등록 내용을 확인해 주세요</h2><p class="screen-intro">내용을 확인한 뒤 등록을 완료해 주세요.</p>
+          <div class="summary"><div class="summary-item"><span>생물 종류</span><b id="summary-category">-</b></div><div class="summary-item"><span>종명</span><b id="summary-species">-</b></div><div class="summary-item"><span>학명</span><b id="summary-scientific-name">미입력</b></div><div class="summary-item"><span>이름 또는 관리 번호</span><b id="summary-name">-</b></div><div class="summary-item"><span>보유 상태</span><b id="summary-status">-</b></div><div class="summary-item"><span>연결 서류</span><b id="summary-documents">미연결</b></div><div class="summary-item"><span>대표 사진</span><b id="summary-photo">미등록</b></div></div>
         </section>
 
         <div class="actions"><button class="prev hidden" type="button" id="prev">이전</button><button class="next" type="button" id="next">다음</button><button class="done" type="button" id="done" hidden>등록 완료</button></div>
@@ -55,6 +56,7 @@
       <aside class="tip"><h2>입력 도움말</h2><p id="tip-text">처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.</p><div class="turtle">🐢</div></aside>
     </div>
   </main>
+  <script src="js/document-links.js"></script>
   <script>
     const form = document.querySelector('#animal-form');
     const screens = document.querySelectorAll('.screen');
@@ -65,6 +67,33 @@
     const tip = document.querySelector('#tip-text');
     const scientificName = document.querySelector('#scientific-name');
     const normalizeSpecies = value => String(value || '').replace(/\s+/g, '').toLowerCase();
+    function selectedDocumentIds() {
+      return [...document.querySelectorAll('#document-candidates input:checked')].map(input => input.value);
+    }
+    let candidateName = '';
+    function updateDocumentCandidates() {
+      const selected = candidateName === scientificName.value ? selectedDocumentIds() : [];
+      candidateName = scientificName.value;
+      const candidates = CitesDocumentLinks.candidates(scientificName.value,
+        JSON.parse(localStorage.getItem('cites-documents') || '[]'),
+        JSON.parse(localStorage.getItem('cites-animals') || '[]'));
+      const list = document.querySelector('#document-candidates');
+      list.replaceChildren();
+      document.querySelector('#document-candidate-help').textContent = !scientificName.value
+        ? '학명을 선택하면 같은 학명의 서류가 표시됩니다.'
+        : candidates.length ? '연결할 서류를 선택해 주세요. 수량이 모두 연결되거나 소진된 서류는 선택할 수 없습니다.'
+        : '이 학명과 일치하는 서류가 없습니다.';
+      candidates.forEach(item => {
+        const label = document.createElement('label'); label.className = 'document-candidate';
+        const input = document.createElement('input'); input.type = 'checkbox'; input.value = item.document.id;
+        input.disabled = item.slots < 1; input.checked = !input.disabled && selected.includes(input.value);
+        const text = document.createElement('span'); text.textContent = item.document.title || '이름 없는 서류';
+        const detail = document.createElement('small');
+        detail.textContent = (item.document.reference ? item.document.reference + ' · ' : '') + '추가 연결 가능 ' + item.slots + '마리';
+        text.append(detail); label.append(input, text); list.append(label);
+      });
+    }
+    scientificName.addEventListener('change', updateDocumentCandidates);
     function updateScientificNames() {
       const previousValue = scientificName.value;
       const species = normalizeSpecies(document.querySelector('#species').value);
@@ -88,10 +117,11 @@
         ? '종명을 입력하면 서류에 등록한 학명을 선택할 수 있어요.'
         : names.size ? '이 종의 서류에 등록된 학명을 선택해 주세요.'
         : '이 종에 등록된 학명이 없습니다. 서류 등록에서 학명을 입력하면 선택할 수 있어요. 지금은 미입력으로 등록할 수 있습니다.';
+      updateDocumentCandidates();
     }
     document.querySelector('#species').addEventListener('input', updateScientificNames);
     window.addEventListener('pageshow', updateScientificNames);
-    window.addEventListener('storage', event => { if (event.key === 'cites-documents') updateScientificNames(); });
+    window.addEventListener('storage', event => { if (event.key === 'cites-documents' || event.key === 'cites-animals') updateScientificNames(); });
     updateScientificNames();
     let current = 1;
     const tips = { 1:'처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.', 2:'사진은 나중에 추가할 수 있습니다. 지금은 대표 사진 한 장이면 충분해요.', 3:'내용을 확인한 뒤 등록을 완료하면 다음 단계에서 목록과 상세 화면에 연결됩니다.' };
@@ -106,6 +136,7 @@
       if (step === 3) updateSummary();
     }
     function updateSummary() {
+      document.querySelector('#summary-documents').textContent = [...document.querySelectorAll('#document-candidates input:checked')].map(input => input.parentElement.querySelector('span').firstChild.textContent).join(', ') || '미연결';
       document.querySelector('#summary-category').textContent = document.querySelector('#category').value || '-';
       document.querySelector('#summary-species').textContent = document.querySelector('#species').value || '-';
       document.querySelector('#summary-scientific-name').textContent = scientificName.value || '미입력';
@@ -141,9 +172,8 @@
         photo: selectedPhoto,
         createdAt: new Date().toISOString()
       };
-      const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
-      animals.unshift(animal);
-      localStorage.setItem('cites-animals', JSON.stringify(animals));
+      try { CitesDocumentLinks.saveAnimal(animal, selectedDocumentIds()); }
+      catch (error) { alert(error.message); updateDocumentCandidates(); showStep(1); return; }
       location.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
     });
   </script>
