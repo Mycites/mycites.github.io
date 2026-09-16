@@ -47,7 +47,7 @@
     <main id="dashboard">
       <div class="topbar">
         <span class="crumb">내 사육 기록 / 대시보드</span>
-        <div class="user"><span>나의 기록장</span><button class="google-action" type="button" id="google-connect" disabled>Google 연결 준비 중</button><button class="google-action primary" type="button" id="google-sync" hidden>Sheets에 백업</button><button class="google-action" type="button" id="google-restore" hidden>Sheets에서 불러오기</button><span class="user-badge">나</span><span class="sync-status" id="sync-status">이 기기의 기록은 아직 브라우저에만 저장됩니다.</span></div>
+        <div class="user"><span>나의 기록장</span><button class="google-action" type="button" id="export-data">기록 파일 내보내기</button><button class="google-action" type="button" id="import-data">기록 파일 가져오기</button><input id="import-file" type="file" accept="application/json" hidden><button class="google-action" type="button" id="google-connect" disabled>Google 연결 준비 중</button><button class="google-action primary" type="button" id="google-sync" hidden>Sheets에 백업</button><button class="google-action" type="button" id="google-restore" hidden>Sheets에서 불러오기</button><span class="user-badge">나</span><span class="sync-status" id="sync-status">이 기기의 기록은 아직 브라우저에만 저장됩니다.</span></div>
       </div>
 
       <section class="hello">

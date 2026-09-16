@@ -7,6 +7,7 @@
     { title:'서류', key:'cites-documents', headers:['id','title','species','initialCount','quantityChanges','reference','animalIds','fileName','createdAt'] },
     { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','createdAt'] }
   ];
+  const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records'];
   let accessToken = '';
   let tokenClient;
   const byId = id => document.querySelector(`#${id}`);
@@ -89,6 +90,41 @@
     };
     tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
   };
+  const exportData = () => {
+    const data = { format:'cites-backup-v1', exportedAt:new Date().toISOString(), records:Object.fromEntries(transferKeys.map(key => [key, JSON.parse(localStorage.getItem(key) || '[]')])) };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `사이테스-기록-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    setStatus('기록 파일을 내려받았습니다. 이 파일은 안전한 곳에 보관해 주세요.');
+  };
+  const importData = event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (data.format !== 'cites-backup-v1' || !data.records || !transferKeys.every(key => Array.isArray(data.records[key]))) throw new Error('사이테스 기록 파일 형식이 아닙니다.');
+        if (!confirm('현재 화면의 기록을 선택한 파일의 기록으로 바꿉니다. 현재 기록은 먼저 파일로 내보낸 뒤 진행하세요. 계속할까요?')) return;
+        const previous = Object.fromEntries(transferKeys.map(key => [key, localStorage.getItem(key)]));
+        try { transferKeys.forEach(key => localStorage.setItem(key, JSON.stringify(data.records[key]))); }
+        catch (error) { transferKeys.forEach(key => previous[key] === null ? localStorage.removeItem(key) : localStorage.setItem(key, previous[key])); throw error; }
+        setStatus('기록 파일을 가져왔습니다. 화면을 새로 고칩니다.');
+        setTimeout(() => location.reload(), 700);
+      } catch (error) { setStatus(`가져오지 못했습니다: ${error.message}`); }
+      finally { event.target.value = ''; }
+    });
+    reader.readAsText(file);
+  };
+  const setupTransfer = () => {
+    byId('export-data').addEventListener('click', exportData);
+    byId('import-data').addEventListener('click', () => byId('import-file').click());
+    byId('import-file').addEventListener('change', importData);
+  };
+  setupTransfer();
   window.googleIdentityReady = () => {
     const connect = byId('google-connect');
     const sync = byId('google-sync');
