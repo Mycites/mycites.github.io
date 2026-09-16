@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>새 동물 등록 | 거북이 기록장</title>
+  <style>
+    :root { --forest:#123f35; --green:#18755d; --mint:#eaf6ef; --cream:#fbfaf5; --ink:#18352d; --muted:#687b74; --line:#deebe4; --orange:#ef9c57; }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); background:var(--cream); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; line-height:1.55; }
+    main { width:min(1040px,100%); margin:auto; padding:30px 24px 64px; } .top { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:34px; } .back { color:var(--forest); text-decoration:none; font-weight:750; } .brand { color:var(--muted); font-size:.9rem; }
+    .title-row { display:flex; align-items:end; justify-content:space-between; gap:22px; margin-bottom:26px; } h1 { margin:0; font-size:clamp(2rem,5vw,3rem); line-height:1.2; letter-spacing:-.055em; } .title-row p { margin:8px 0 0; color:var(--muted); }
+    .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:26px; } .step { padding:12px 14px; border-radius:11px; color:var(--muted); background:#eff2f0; font-size:.88rem; font-weight:700; } .step.active { color:#fff; background:var(--green); } .step b { margin-right:7px; }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 265px; gap:22px; } .form-card, .tip { border:1px solid var(--line); border-radius:18px; background:#fff; } .form-card { padding:28px; } .tip { align-self:start; padding:22px; background:var(--mint); } .tip h2 { margin:0 0 8px; font-size:1rem; } .tip p { margin:0; color:#466259; font-size:.9rem; } .turtle { margin-top:15px; font-size:2.6rem; }
+    .screen { display:none; } .screen.active { display:block; } h2 { margin:0; font-size:1.28rem; } .screen-intro { margin:7px 0 24px; color:var(--muted); }
+    .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:17px; } .field.full { grid-column:1 / -1; } label { display:block; margin-bottom:7px; font-size:.88rem; font-weight:750; } .required { color:#c65a38; } input, select, textarea { width:100%; padding:12px; border:1px solid #cbdad3; border-radius:10px; color:var(--ink); background:#fff; font:inherit; } textarea { min-height:96px; resize:vertical; } input:focus, select:focus, textarea:focus { outline:3px solid #c9eadb; border-color:var(--green); }
+    .optional { margin-top:27px; padding-top:21px; border-top:1px solid var(--line); } .optional h3 { margin:0 0 14px; font-size:.98rem; } .upload { display:grid; place-items:center; min-height:155px; padding:20px; border:2px dashed #9dcbb9; border-radius:14px; color:#3e695a; background:#f4fbf7; text-align:center; } .upload input { display:none; } .upload strong { display:block; margin-bottom:5px; } .upload small { color:var(--muted); }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; } .chip { padding:7px 10px; border-radius:999px; color:#25694f; background:#e5f3eb; font-size:.8rem; font-weight:700; } .summary { display:grid; gap:12px; } .summary-item { display:flex; justify-content:space-between; gap:18px; padding:13px 0; border-bottom:1px solid #edf1ee; } .summary-item span { color:var(--muted); } .summary-item b { text-align:right; }
+    .actions { display:flex; justify-content:space-between; gap:12px; margin-top:30px; padding-top:22px; border-top:1px solid var(--line); } button { padding:12px 17px; border:1px solid transparent; border-radius:10px; font:inherit; font-weight:750; cursor:pointer; } .prev { color:#45665a; border-color:#cbdad3; background:#fff; } .next, .done { color:#fff; background:var(--green); } .next:hover, .done:hover { background:#105d49; } .hidden { visibility:hidden; }
+    @media (max-width:760px) { main { padding:22px 16px 44px; } .top { margin-bottom:25px; } .title-row { align-items:start; flex-direction:column; } .layout { grid-template-columns:1fr; } .tip { order:-1; } .turtle { display:none; } .form-card { padding:21px; } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .steps { font-size:.78rem; } .step { padding:10px 8px; } }
+    @media (max-width:380px) { .form-card { padding:18px; } .steps { gap:4px; font-size:.7rem; } .step { padding:9px 5px; } .actions { align-items:stretch; flex-direction:column-reverse; } .actions button { width:100%; min-height:46px; } .actions .hidden { display:none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="top"><a class="back" href="index.html">← 대시보드로 돌아가기</a><span class="brand">🐢 거북이 기록장</span></header>
+    <section class="title-row"><div><h1>새 동물 등록</h1><p>필수 정보만 먼저 입력해도 됩니다. 나머지 기록은 나중에 추가할 수 있어요.</p></div></section>
+    <div class="steps" aria-label="등록 단계"><div class="step active" data-step="1"><b>1</b>기본 정보</div><div class="step" data-step="2"><b>2</b>사진 · 서류</div><div class="step" data-step="3"><b>3</b>등록 확인</div></div>
+
+    <div class="layout">
+      <form class="form-card" id="animal-form">
+        <section class="screen active" data-screen="1">
+          <h2>기본 정보를 입력해 주세요</h2><p class="screen-intro">별표가 있는 항목만 입력하면 다음 단계로 넘어갈 수 있습니다.</p>
+          <div class="form-grid">
+            <div class="field"><label for="category">생물 종류 <span class="required">*</span></label><select id="category" required><option value="">선택해 주세요</option><option>거북이</option><option>뱀</option><option>도마뱀</option><option>조류</option><option>기타</option></select></div>
+            <div class="field"><label for="species">종명 <span class="required">*</span></label><input id="species" placeholder="예: 다이아몬드백 테라핀" required></div>
+            <div class="field"><label for="animal-name">이름 또는 관리 번호 <span class="required">*</span></label><input id="animal-name" placeholder="예: 테라 또는 2026-01" required></div>
+            <div class="field"><label for="status">보유 상태 <span class="required">*</span></label><select id="status" required><option value="보유 중">보유 중</option><option value="양도 예정">양도 예정</option><option value="양도 완료">양도 완료</option></select></div>
+          </div>
+          <div class="optional"><h3>선택 정보</h3><div class="form-grid"><div class="field"><label for="sex">성별</label><select id="sex"><option value="미입력">미입력</option><option>수컷</option><option>암컷</option><option>미상</option></select></div><div class="field"><label for="date">출생일 또는 입고일</label><input id="date" type="date"></div><div class="field full"><label for="memo">메모</label><textarea id="memo" placeholder="특징, 건강 상태 등 기억할 내용을 적어 주세요."></textarea></div></div></div>
+        </section>
+
+        <section class="screen" data-screen="2">
+          <h2>사진과 서류를 연결해 주세요</h2><p class="screen-intro">대표 사진은 목록에서 개체를 찾을 때 사용합니다. 지금 건너뛰어도 됩니다.</p>
+          <label class="upload" for="photo"><span><strong>📷 대표 개체 사진 추가</strong><small>클릭해서 사진 파일을 선택하세요</small></span><input id="photo" type="file" accept="image/*"></label>
+          <div class="optional"><h3>선택적으로 함께 기록할 수 있어요</h3><div class="chips"><span class="chip">개체 사진</span><span class="chip">사육장 시설 사진</span><span class="chip">관련 서류</span><span class="chip">산란 · 부화 사진</span></div></div>
+        </section>
+
+        <section class="screen" data-screen="3">
+          <h2>등록 내용을 확인해 주세요</h2><p class="screen-intro">아래 내용은 다음 단계에서 실제 저장 기능과 연결됩니다.</p>
+          <div class="summary"><div class="summary-item"><span>생물 종류</span><b id="summary-category">-</b></div><div class="summary-item"><span>종명</span><b id="summary-species">-</b></div><div class="summary-item"><span>이름 또는 관리 번호</span><b id="summary-name">-</b></div><div class="summary-item"><span>보유 상태</span><b id="summary-status">-</b></div><div class="summary-item"><span>대표 사진</span><b id="summary-photo">미등록</b></div></div>
+        </section>
+
+        <div class="actions"><button class="prev hidden" type="button" id="prev">이전</button><button class="next" type="button" id="next">다음</button><button class="done" type="button" id="done" hidden>등록 완료</button></div>
+      </form>
+      <aside class="tip"><h2>입력 도움말</h2><p id="tip-text">처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.</p><div class="turtle">🐢</div></aside>
+    </div>
+  </main>
+  <script>
+    const form = document.querySelector('#animal-form');
+    const screens = document.querySelectorAll('.screen');
+    const stepLabels = document.querySelectorAll('.step');
+    const previous = document.querySelector('#prev');
+    const next = document.querySelector('#next');
+    const done = document.querySelector('#done');
+    const tip = document.querySelector('#tip-text');
+    let current = 1;
+    const tips = { 1:'처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.', 2:'사진은 나중에 추가할 수 있습니다. 지금은 대표 사진 한 장이면 충분해요.', 3:'내용을 확인한 뒤 등록을 완료하면 다음 단계에서 목록과 상세 화면에 연결됩니다.' };
+    function showStep(step) {
+      current = step;
+      screens.forEach(item => item.classList.toggle('active', Number(item.dataset.screen) === step));
+      stepLabels.forEach(item => item.classList.toggle('active', Number(item.dataset.step) === step));
+      previous.classList.toggle('hidden', step === 1);
+      next.hidden = step === 3;
+      done.hidden = step !== 3;
+      tip.textContent = tips[step];
+      if (step === 3) updateSummary();
+    }
+    function updateSummary() {
+      document.querySelector('#summary-category').textContent = document.querySelector('#category').value || '-';
+      document.querySelector('#summary-species').textContent = document.querySelector('#species').value || '-';
+      document.querySelector('#summary-name').textContent = document.querySelector('#animal-name').value || '-';
+      document.querySelector('#summary-status').textContent = document.querySelector('#status').value || '-';
+      document.querySelector('#summary-photo').textContent = document.querySelector('#photo').files.length ? '사진 1장 선택됨' : '미등록';
+    }
+    next.addEventListener('click', () => {
+      if (current === 1 && !form.reportValidity()) return;
+      showStep(Math.min(current + 1, 3));
+    });
+    previous.addEventListener('click', () => showStep(Math.max(current - 1, 1)));
+    let selectedPhoto = '';
+    document.querySelector('#photo').addEventListener('change', event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.addEventListener('load', () => { selectedPhoto = reader.result; });
+      reader.readAsDataURL(file);
+    });
+    done.addEventListener('click', () => {
+      if (!form.reportValidity()) { showStep(1); return; }
+      const animal = {
+        id: String(Date.now()),
+        category: document.querySelector('#category').value,
+        species: document.querySelector('#species').value.trim(),
+        name: document.querySelector('#animal-name').value.trim(),
+        status: document.querySelector('#status').value,
+        sex: document.querySelector('#sex').value,
+        date: document.querySelector('#date').value,
+        memo: document.querySelector('#memo').value.trim(),
+        photo: selectedPhoto,
+        createdAt: new Date().toISOString()
+      };
+      const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+      animals.unshift(animal);
+      localStorage.setItem('cites-animals', JSON.stringify(animals));
+      location.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
+    });
+  </script>
+</body>
+</html>

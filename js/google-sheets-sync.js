@@ -1,0 +1,102 @@
+(() => {
+  const CLIENT_ID = '815518831853-jm9apbu6j94cndmvqpk28i879mor0v91.apps.googleusercontent.com';
+  const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+  const SPREADSHEET_NAME = '사이테스 기록장 데이터';
+  const sheetSpecs = [
+    { title:'개체', key:'cites-animals', headers:['id','category','species','name','status','sex','date','memo','createdAt'] },
+    { title:'서류', key:'cites-documents', headers:['id','title','species','initialCount','quantityChanges','reference','animalIds','fileName','createdAt'] },
+    { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','createdAt'] }
+  ];
+  let accessToken = '';
+  let tokenClient;
+  const byId = id => document.querySelector(`#${id}`);
+  const setStatus = message => { const status = byId('sync-status'); if (status) status.textContent = message; };
+  const setBusy = (button, busy) => { if (button) button.disabled = busy; };
+  const api = async (url, options = {}) => {
+    const response = await fetch(url, { ...options, headers:{ Authorization:`Bearer ${accessToken}`, 'Content-Type':'application/json', ...(options.headers || {}) } });
+    if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error?.message || 'Google 요청에 실패했습니다.');
+    return response.status === 204 ? null : response.json();
+  };
+  const localRows = spec => {
+    const items = JSON.parse(localStorage.getItem(spec.key) || '[]');
+    return [spec.headers, ...items.map(item => spec.headers.map(header => {
+      const value = item[header];
+      return Array.isArray(value) || (value && typeof value === 'object') ? JSON.stringify(value) : (value ?? '');
+    }))];
+  };
+  const findOrCreateSpreadsheet = async () => {
+    const query = encodeURIComponent(`name = '${SPREADSHEET_NAME}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`);
+    const found = await api(`https://www.googleapis.com/drive/v3/files?q=${query}&pageSize=10&fields=files(id,name)`);
+    if (found.files?.length) return found.files[0].id;
+    const created = await api('https://sheets.googleapis.com/v4/spreadsheets', { method:'POST', body:JSON.stringify({ properties:{ title:SPREADSHEET_NAME }, sheets:sheetSpecs.map(spec => ({ properties:{ title:spec.title } })) }) });
+    return created.spreadsheetId;
+  };
+  const backup = async () => {
+    const button = byId('google-sync'); setBusy(button, true); setStatus('Google Sheets에 기록을 저장하는 중입니다…');
+    try {
+      const spreadsheetId = await findOrCreateSpreadsheet();
+      await api(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchClear`, { method:'POST', body:JSON.stringify({ ranges:sheetSpecs.map(spec => `'${spec.title}'!A:Z`) }) });
+      await api(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, { method:'POST', body:JSON.stringify({ valueInputOption:'RAW', data:sheetSpecs.map(spec => ({ range:`'${spec.title}'!A1`, majorDimension:'ROWS', values:localRows(spec) })) }) });
+      localStorage.setItem('cites-google-sheet-id', spreadsheetId);
+      setStatus('방금 Google Sheets에 관리 기록을 백업했습니다.');
+    } catch (error) { setStatus(`백업하지 못했습니다: ${error.message}`); }
+    finally { setBusy(button, false); }
+  };
+  const parseRows = (spec, values, localItems) => {
+    if (!values?.length) return [];
+    const headers = values[0];
+    const existing = new Map(localItems.map(item => [item.id, item]));
+    return values.slice(1).filter(row => row.some(value => value !== '')).map(row => {
+      const item = {};
+      headers.forEach((header, index) => {
+        let value = row[index] ?? '';
+        if (header === 'animalIds' || header === 'quantityChanges') { try { value = value ? JSON.parse(value) : []; } catch { value = []; } }
+        if (header === 'initialCount') value = Number(value || 0);
+        item[header] = value;
+      });
+      const current = existing.get(item.id);
+      if (current?.photo) item.photo = current.photo;
+      if (current?.fileData) item.fileData = current.fileData;
+      return item;
+    });
+  };
+  const restore = async () => {
+    if (!confirm('현재 기기의 텍스트 기록을 Google Sheets 기록으로 바꿉니다. 이 기기에만 있는 사진·파일은 유지하지만, 먼저 백업하는 것을 권장합니다. 계속할까요?')) return;
+    const button = byId('google-restore'); setBusy(button, true); setStatus('Google Sheets에서 기록을 불러오는 중입니다…');
+    try {
+      const spreadsheetId = await findOrCreateSpreadsheet();
+      const ranges = sheetSpecs.map(spec => encodeURIComponent(`'${spec.title}'!A:Z`)).join('&ranges=');
+      const result = await api(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${ranges}`);
+      sheetSpecs.forEach((spec, index) => {
+        const current = JSON.parse(localStorage.getItem(spec.key) || '[]');
+        localStorage.setItem(spec.key, JSON.stringify(parseRows(spec, result.valueRanges?.[index]?.values, current)));
+      });
+      localStorage.setItem('cites-google-sheet-id', spreadsheetId);
+      setStatus('Google Sheets 기록을 불러왔습니다. 화면을 새로 고칩니다.');
+      setTimeout(() => location.reload(), 700);
+    } catch (error) { setStatus(`불러오지 못했습니다: ${error.message}`); setBusy(button, false); }
+  };
+  const showConnected = () => {
+    byId('google-connect').hidden = true;
+    byId('google-sync').hidden = false;
+    byId('google-restore').hidden = false;
+    setStatus('Google 계정이 연결되었습니다. 사진·PDF Drive 백업은 다음 단계에서 추가합니다.');
+  };
+  const requestAccess = callback => {
+    tokenClient.callback = response => {
+      if (response.error) { setStatus('Google 연결이 취소되었거나 허용되지 않았습니다.'); return; }
+      accessToken = response.access_token; showConnected(); callback?.();
+    };
+    tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+  };
+  window.googleIdentityReady = () => {
+    const connect = byId('google-connect');
+    const sync = byId('google-sync');
+    const restoreButton = byId('google-restore');
+    tokenClient = google.accounts.oauth2.initTokenClient({ client_id:CLIENT_ID, scope:SCOPES, callback:'' });
+    connect.disabled = false; connect.textContent = 'Google 계정 연결';
+    connect.addEventListener('click', () => requestAccess());
+    sync.addEventListener('click', () => requestAccess(backup));
+    restoreButton.addEventListener('click', () => requestAccess(restore));
+  };
+})();

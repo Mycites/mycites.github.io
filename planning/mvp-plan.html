@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CITES 애완동물 관리 | MVP 계획</title>
+  <style>
+    :root { --ink:#18342d; --muted:#50665f; --brand:#176b55; --pale:#eff8f3; --line:#d8e8df; --notice:#fff8e5; --off:#f5f7f6; }
+    * { box-sizing:border-box; } body { margin:0; background:#f7faf8; color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; line-height:1.75; }
+    main { max-width:960px; margin:auto; padding:48px 24px 80px; } header { padding:38px; color:#fff; background:linear-gradient(135deg,#164a3b,#238166); border-radius:20px; }
+    .eyebrow { margin:0; color:#c9ebdc; font-size:.88rem; font-weight:750; letter-spacing:.07em; } h1 { margin:8px 0 10px; font-size:clamp(2rem,5vw,3.1rem); line-height:1.2; } header p { margin-bottom:0; font-size:1.08rem; }
+    section { margin-top:26px; padding:28px; border:1px solid var(--line); border-radius:16px; background:#fff; } h2 { margin:0 0 14px; font-size:1.48rem; } h3 { margin:22px 0 8px; font-size:1.05rem; }
+    p { margin:8px 0; } .summary { padding:17px 20px; border-left:4px solid var(--brand); border-radius:0 10px 10px 0; background:var(--pale); font-size:1.08rem; } ul,ol { margin:8px 0; padding-left:1.35rem; } li + li { margin-top:7px; }
+    table { width:100%; border-collapse:collapse; margin-top:14px; font-size:.94rem; } th,td { padding:12px; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:#f0f8f4; } .off { background:var(--off); color:#687a73; } .notice { padding:16px 18px; border:1px solid #efdfaa; border-radius:10px; background:var(--notice); } a { color:var(--brand); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="project-plan.html">← 전체 기획서로 돌아가기</a>
+    <header>
+      <p class="eyebrow">MVP · FIRST RELEASE</p>
+      <h1>CITES 애완동물 관리<br>최소 기능 제품 계획</h1>
+      <p>개인 브리더가 개체 정보와 증식 기록을 실제로 남기고 다시 찾을 수 있는 첫 출시 범위</p>
+    </header>
+
+    <section>
+      <h2>1. MVP 한 문장</h2>
+      <p class="summary">개인 브리더가 사육 중인 CITES 애완동물을 등록하고, 개체 사진·기본 증식 기록·연결 서류를 개체별로 저장·조회할 수 있는 개인용 웹 관리 도구.</p>
+      <p>첫 출시의 성공 기준은 “새 개체 1마리를 등록하고, 나중에 그 개체의 사진과 번식 정보를 1분 안에 다시 찾을 수 있는가”이다.</p>
+    </section>
+
+    <section>
+      <h2>2. MVP에 포함할 기능</h2>
+      <table>
+        <thead><tr><th>기능</th><th>사용자가 할 수 있는 일</th><th>첫 버전 범위</th></tr></thead>
+        <tbody>
+          <tr><td>개체 등록</td><td>새 동물의 기본 정보를 등록한다.</td><td>종명, 이름·관리 번호, 생물 종류, 보유 상태, 성별·출생일은 선택 입력</td></tr>
+          <tr><td>개체 목록</td><td>보유 중인 개체를 한눈에 본다.</td><td>대표 사진, 이름·관리 번호, 종명, 보유 상태 표시</td></tr>
+          <tr><td>서류 목록</td><td>등록한 서류의 남은 관리 수량과 사용 가능 여부를 한눈에 확인한다.</td><td>대상 종, 처음·남은 수량, 사용 가능 여부, 연결 개체 표시</td></tr>
+          <tr><td>개체 상세</td><td>한 개체의 정보와 기록을 다시 확인한다.</td><td>기본 정보, 대표 사진, 메모, 연결된 증식 기록</td></tr>
+          <tr><td>사진 등록</td><td>개체 사진과 산란·부화 사진을 추가한다.</td><td>대표 사진 1장과 추가 사진, 사진 종류 선택</td></tr>
+          <tr><td>서류 연결·수량 관리</td><td>한 장의 CITES·입수 관련 서류를 여러 개체에 함께 연결하고, 서류별 관리 수량을 확인한다.</td><td>서류 이름, 대상 종, 처음 관리 수량, 관리 번호, 파일, 연결할 개체를 기록한다. 양도·폐사 시 수량을 차감하고 0마리가 되면 사용 불가로 표시한다.</td></tr>
+          <tr><td>증식 기록</td><td>산란·부화 정보를 남긴다.</td><td>부모 개체, 산란일, 부화일, 부화 온도, 알 수·부화 수, 메모</td></tr>
+          <tr><td>대시보드</td><td>현재 관리 현황을 빠르게 확인한다.</td><td>보유 개체 수, 최근 등록 개체, 최근 증식 기록</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. MVP에서 제외할 기능</h2>
+      <p>아래 기능은 중요하지만, 첫 버전의 사용 흐름을 단순하게 유지하기 위해 다음 단계로 미룬다.</p>
+      <table class="off">
+        <thead><tr><th>다음 단계로 미룰 기능</th><th>이유</th></tr></thead>
+        <tbody>
+          <tr><td>직원 계정·권한 관리</td><td>첫 버전은 개인 브리더 한 명이 사용하는 흐름에 집중한다.</td></tr>
+          <tr><td>거래처·판매 관리</td><td>개체·증식 기록이 먼저 안정적으로 쌓인 뒤 확장한다.</td></tr>
+          <tr><td>복잡한 서류 종류·법률 검토</td><td>서류 연결만 우선 제공하고, 법률·행정 판단 기능은 제공하지 않는다.</td></tr>
+          <tr><td>자동 사진 압축·클라우드 용량 관리</td><td>파일 업로드 흐름을 먼저 검증한 뒤 저장 비용과 함께 설계한다.</td></tr>
+          <tr><td>양도 후 자동 삭제·알림</td><td>실수로 자료가 사라질 위험이 있으므로, 기록 축적 후 사용자 확인 방식으로 도입한다.</td></tr>
+          <tr><td>엑셀·기존 폴더 자료 가져오기</td><td>새로 입력하는 기본 흐름을 먼저 완성한다.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. 핵심 사용자 흐름</h2>
+      <ol>
+        <li>대시보드에서 <strong>새 동물 등록</strong>을 누른다.</li>
+        <li>종명, 이름·관리 번호, 보유 상태를 입력하고 대표 사진을 1장 등록한다.</li>
+        <li>등록 완료 후 개체 상세 화면에서 정보와 사진을 확인한다.</li>
+        <li>같은 서류에 포함된 다른 개체가 있다면, 서류 연결에서 함께 선택해 한 건으로 기록한다.</li>
+        <li>양도 또는 폐사가 발생하면 해당 서류에서 사유와 수량을 남긴다. 남은 수량이 0이면 서류는 사용 불가 상태가 된다.</li>
+        <li>산란 또는 부화가 발생하면 해당 개체에서 <strong>증식 기록 추가</strong>를 누른다.</li>
+        <li>대시보드와 개체 상세 화면에서 최근 증식 기록을 다시 확인한다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>5. MVP 화면 목록</h2>
+      <table>
+        <thead><tr><th>화면</th><th>사용자에게 중요한 이유</th><th>대표 버튼</th></tr></thead>
+        <tbody>
+          <tr><td>대시보드</td><td>오늘 무엇을 기록했고, 관리 중인 개체가 몇 마리인지 바로 알 수 있다.</td><td>새 동물 등록</td></tr>
+          <tr><td>동물 등록</td><td>최소 정보와 대표 사진만으로 빠르게 등록을 시작할 수 있다.</td><td>다음, 등록 완료</td></tr>
+          <tr><td>개체 목록</td><td>사육 중인 개체를 사진과 이름으로 찾아 들어갈 수 있다.</td><td>개체 선택</td></tr>
+          <tr><td>서류 목록</td><td>어떤 서류의 수량이 남아 있는지 찾아볼 수 있다.</td><td>연결된 개체 보기</td></tr>
+          <tr><td>개체 상세</td><td>한 개체의 사진·기본 정보·증식 기록·연결 서류와 남은 관리 수량을 모아 본다.</td><td>서류 연결, 수량 감소 기록, 증식 기록 추가</td></tr>
+          <tr><td>증식 기록 등록</td><td>산란·부화 순간의 핵심 정보를 바로 남긴다.</td><td>기록 저장</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>6. MVP 완료 기준</h2>
+      <div class="notice">
+        <ul>
+          <li>사용자가 새 개체를 등록하고 대표 사진을 연결할 수 있다.</li>
+          <li>등록한 개체가 목록과 상세 화면에 같은 정보로 표시된다.</li>
+          <li>개체별로 산란·부화 정보를 1건 이상 등록하고 다시 볼 수 있다.</li>
+          <li>서류 1건을 여러 개체에 연결하고, 연결된 모든 개체의 상세 화면에서 다시 볼 수 있다.</li>
+          <li>서류별 대상 종과 처음 관리 수량을 입력하고, 양도·폐사에 따른 남은 수량과 사용 가능 여부를 확인할 수 있다.</li>
+          <li>서류 목록에서 사용 가능한 서류와 사용 불가 서류를 구분해 볼 수 있다.</li>
+          <li>모바일 화면에서도 제목, 입력 항목, 다음·저장 버튼이 잘린 곳 없이 보인다.</li>
+          <li>서류·법률 판단 기능이 아니라 개인 기록 관리 도구임을 화면에 명확히 안내한다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>7. 구현 순서</h2>
+      <ol>
+        <li>동물 등록 화면의 3단계 UI를 만든다.</li>
+        <li>등록한 개체가 목록과 상세 화면에 보이도록 연결한다.</li>
+        <li>개체 상세 화면에 증식 기록 등록을 추가한다.</li>
+        <li>서류 1건을 여러 개체에 연결하는 기능을 추가한다.</li>
+        <li>서류별 관리 수량과 양도·폐사 차감 기록을 추가한다.</li>
+        <li>서류 목록에서 남은 수량과 사용 가능 여부를 확인한다.</li>
+        <li>대시보드에 실제 등록 현황과 최근 기록을 표시한다.</li>
+        <li>모바일 폭에서 입력 화면과 버튼이 잘 보이는지 확인한다.</li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>

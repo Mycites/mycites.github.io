@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CITES 애완동물 관리 | Google 연동 계획</title>
+  <style>
+    :root { --ink:#18342d; --muted:#50665f; --brand:#176b55; --pale:#eff8f3; --line:#d8e8df; --notice:#fff8e5; --off:#f5f7f6; } * { box-sizing:border-box; } body { margin:0; background:#f7faf8; color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; line-height:1.75; }
+    main { max-width:960px; margin:auto; padding:48px 24px 80px; } header { padding:38px; color:#fff; border-radius:20px; background:linear-gradient(135deg,#164a3b,#238166); } .eyebrow { margin:0; color:#c9ebdc; font-size:.88rem; font-weight:750; letter-spacing:.07em; } h1 { margin:8px 0 10px; font-size:clamp(2rem,5vw,3.1rem); line-height:1.2; } header p { margin-bottom:0; font-size:1.08rem; }
+    section { margin-top:26px; padding:28px; border:1px solid var(--line); border-radius:16px; background:#fff; } h2 { margin:0 0 14px; font-size:1.45rem; } p { margin:8px 0; } .summary { padding:17px 20px; border-left:4px solid var(--brand); border-radius:0 10px 10px 0; background:var(--pale); font-size:1.08rem; } table { width:100%; margin-top:14px; border-collapse:collapse; font-size:.94rem; } th,td { padding:12px; border:1px solid var(--line); text-align:left; vertical-align:top; } th { background:#f0f8f4; } ol,ul { padding-left:1.35rem; } li + li { margin-top:7px; } .notice { padding:16px 18px; border:1px solid #efdfaa; border-radius:10px; background:var(--notice); } .off { color:#687a73; background:var(--off); } a { color:var(--brand); font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="project-plan.html">← 전체 기획서로 돌아가기</a>
+    <header><p class="eyebrow">PERSONAL GOOGLE SYNC · NEXT STEP</p><h1>Google 연동 계획</h1><p>개인 브리더가 자신의 Google 계정으로 사진·서류·기록을 여러 기기에서 관리하는 방식</p></header>
+
+    <section>
+      <h2>1. 결정한 방향</h2>
+      <p class="summary">별도 서버를 먼저 운영하지 않고, 사용자가 본인의 Google 계정으로 로그인해 Drive에 파일을, Sheets에 관리 기록을, Calendar에 필요한 일정만 저장한다.</p>
+      <p>이 방식은 집 PC와 휴대전화에서 같은 자료를 볼 수 있게 하며, 개인용 첫 버전에서 서버 운영비와 관리 부담을 줄인다.</p>
+    </section>
+
+    <section>
+      <h2>2. 데이터가 저장되는 곳</h2>
+      <table>
+        <thead><tr><th>저장 대상</th><th>Google 서비스</th><th>예시</th></tr></thead>
+        <tbody>
+          <tr><td>개체·서류·수량·증식 기록</td><td>Google Sheets</td><td>개체 이름, 종, 서류 ID, 처음·남은 수량, 양도·폐사 기록</td></tr>
+          <tr><td>개체 사진·서류 PDF·이미지</td><td>Google Drive</td><td>개체 대표 사진, 산란·부화 사진, CITES 관련 서류 파일</td></tr>
+          <tr><td>확인이 필요한 일정</td><td>Google Calendar</td><td>부화 예정일, 기록 확인일, 사용자가 직접 추가한 알림</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. 사용 흐름</h2>
+      <ol>
+        <li>사용자가 <strong>Google 계정 연결</strong>을 누르고 본인 계정으로 로그인한다.</li>
+        <li>처음 연결할 때 사진·파일 저장, 기록표 관리, 캘린더 일정 추가 권한을 필요한 범위에서만 허용한다.</li>
+        <li>사진·서류 파일은 개인 Drive의 전용 폴더에 저장한다.</li>
+        <li>개체·서류·수량 변화 기록은 개인 Sheets에 저장하고, 화면은 이 기록을 다시 불러온다.</li>
+        <li>사용자가 원할 때만 부화 예정일 같은 일정을 Calendar에 추가한다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>4. 안전 원칙</h2>
+      <ul>
+        <li>Google 비밀번호, 개인 파일, 로그인 토큰을 프로젝트 파일이나 GitHub에 저장하지 않는다.</li>
+        <li>Google 로그인은 사용자가 직접 허용하는 방식으로만 진행한다.</li>
+        <li>파일 권한은 가능한 한 이 앱이 만든 파일 범위로 제한한다.</li>
+        <li>서류 수량이 0이 되어도 파일을 자동 삭제하지 않는다. 삭제는 사용자가 확인한 뒤에만 한다.</li>
+        <li>Calendar는 내부 알림을 보완하는 선택 기능으로 두며, 사용자가 원하지 않으면 연결하지 않는다.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5. 구현 순서</h2>
+      <ol>
+        <li>Google Cloud 프로젝트와 웹용 로그인 설정을 만든다.</li>
+        <li>Google 계정 연결·해제 화면을 추가한다.</li>
+        <li>Sheets에 개체·서류·수량 기록을 저장하고 불러온다.</li>
+        <li>Drive에 사진·서류 파일을 저장하고, 기록에 파일 주소를 연결한다.</li>
+        <li>선택한 일정만 Calendar에 추가한다.</li>
+        <li>PC와 휴대전화에서 같은 계정으로 기록이 보이는지 확인한다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>6. 실제 연결 전에 필요한 사용자 준비</h2>
+      <div class="notice">
+        <ol>
+          <li>Google 계정으로 <strong>Google Cloud Console</strong>에 로그인한다.</li>
+          <li>새 프로젝트를 만들고 Drive API, Google Sheets API를 켠다. Calendar는 나중에 필요할 때 켠다.</li>
+          <li>OAuth 동의 화면을 설정하고, 웹 애플리케이션용 OAuth 클라이언트 ID를 만든다.</li>
+          <li>허용된 웹 주소에 GitHub Pages 주소 <code>https://kjhchhy.github.io</code>를 등록한다.</li>
+          <li>생성된 <strong>클라이언트 ID</strong>만 알려 준다. 클라이언트 비밀번호나 Google 비밀번호는 절대 보내지 않는다.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="off">
+      <h2>7. 이번 단계에서 아직 하지 않는 일</h2>
+      <p>여러 직원의 권한 관리, 자동 파일 삭제, 자동 사진 압축, 상시 서버 운영은 개인용 Google 연동이 안정적으로 동작한 뒤에 검토한다.</p>
+    </section>
+  </main>
+</body>
+</html>

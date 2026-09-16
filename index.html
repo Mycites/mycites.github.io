@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>거북이 기록장 | CITES 애완동물 관리</title>
+  <title>사이테스 기록장 | CITES 애완동물 관리</title>
   <style>
     :root { --forest:#123f35; --green:#18755d; --mint:#eaf6ef; --cream:#fbfaf5; --ink:#18352d; --muted:#687b74; --line:#deebe4; --orange:#ef9c57; }
     * { box-sizing:border-box; }
@@ -14,25 +14,27 @@
     nav { display:grid; gap:6px; } nav a { display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:11px; color:#d1e5db; text-decoration:none; font-size:.95rem; } nav a:hover, nav a.active { color:#fff; background:#297d66; } .nav-icon { width:22px; text-align:center; }
     .guide { margin-top:auto; padding:14px; border:1px solid #398a74; border-radius:15px; background:#1a4d41; } .guide img { width:68px; height:68px; object-fit:contain; float:right; margin:-10px -8px 0 6px; } .guide strong { display:block; font-size:.9rem; } .guide p { margin:5px 0 0; color:#b8d9ca; font-size:.78rem; line-height:1.5; }
     main { padding:28px clamp(22px,4vw,58px) 56px; overflow:hidden; } .topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:38px; } .crumb { color:var(--muted); font-size:.9rem; } .user { display:flex; align-items:center; gap:10px; } .user-badge { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:#fff; background:#e7a46b; font-weight:800; }
+    .google-action { padding:9px 11px; border:1px solid #b9d9ca; border-radius:9px; color:#245746; background:#fff; font:inherit; font-size:.8rem; font-weight:750; cursor:pointer; } .google-action.primary { border-color:var(--green); color:#fff; background:var(--green); } .google-action:disabled { cursor:wait; opacity:.65; } .sync-status { color:var(--muted); font-size:.73rem; }
     .hello { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:28px; } h1 { margin:0; font-size:clamp(1.9rem,4vw,2.8rem); letter-spacing:-.055em; line-height:1.2; } .hello p { margin:10px 0 0; color:var(--muted); } .add { border:0; padding:13px 17px; border-radius:10px; color:#fff; background:var(--green); font:inherit; font-weight:750; cursor:pointer; white-space:nowrap; } .add:hover { background:#105d49; }
     .stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:30px; } .stat { padding:18px 20px; border:1px solid var(--line); border-radius:15px; background:#fff; } .stat-label { color:var(--muted); font-size:.83rem; } .stat b { display:block; margin-top:6px; font-size:1.72rem; letter-spacing:-.04em; } .stat .accent { color:var(--green); }
     .content { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr); gap:24px; } .panel { padding:22px; border:1px solid var(--line); border-radius:18px; background:#fff; } .panel-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:17px; } h2 { margin:0; font-size:1.05rem; } .link { color:var(--green); font-size:.84rem; text-decoration:none; font-weight:700; }
-    .animal-list { display:grid; gap:10px; } .animal { display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:12px; padding:11px; border-radius:13px; background:#f7faf8; } .animal-photo { display:grid; place-items:center; width:48px; height:48px; border-radius:12px; background:#d6ece1; font-size:1.55rem; } .animal strong { display:block; font-size:.94rem; } .animal small { color:var(--muted); } .status { padding:5px 8px; border-radius:999px; color:#17634e; background:#e2f2e9; font-size:.73rem; font-weight:750; }
+    .animal-list { display:grid; gap:10px; } .animal { display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:12px; padding:11px; border-radius:13px; color:inherit; background:#f7faf8; text-decoration:none; } .animal:hover { background:#edf7f1; } .animal-photo { display:grid; place-items:center; width:48px; height:48px; overflow:hidden; border-radius:12px; background:#d6ece1; font-size:1.55rem; } .animal-photo img { width:100%; height:100%; object-fit:cover; } .animal strong { display:block; font-size:.94rem; } .animal small { color:var(--muted); } .status { padding:5px 8px; border-radius:999px; color:#17634e; background:#e2f2e9; font-size:.73rem; font-weight:750; }
     .right { display:grid; gap:24px; } .record { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid #edf1ee; } .record:last-child { padding-bottom:0; border-bottom:0; } .record-icon { flex:0 0 auto; display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:#fff0df; } .record b { display:block; font-size:.88rem; } .record span { color:var(--muted); font-size:.78rem; }
-    .notice { padding:18px; color:#5d431d; border-radius:16px; background:#fff3d9; } .notice b { display:block; font-size:.95rem; } .notice p { margin:7px 0 0; font-size:.83rem; line-height:1.55; }
+    .notice { padding:18px; color:#5d431d; border-radius:16px; background:#fff3d9; } .notice b { display:block; font-size:.95rem; } .notice p { margin:7px 0 0; font-size:.83rem; line-height:1.55; } .empty { margin:4px 0; color:var(--muted); font-size:.88rem; }
     .project-link { margin-top:28px; color:var(--muted); font-size:.82rem; } .project-link a { color:var(--green); }
     @media (max-width:760px) { .app { grid-template-columns:1fr; } aside { gap:16px; padding:16px; } nav { display:flex; overflow:auto; } nav a { white-space:nowrap; } .guide { display:none; } main { padding:22px 18px 40px; } .topbar { margin-bottom:28px; } .stats, .content { grid-template-columns:1fr; } .hello { align-items:start; flex-direction:column; } }
+    @media (max-width:760px) { .topbar { align-items:start; flex-direction:column; } .user { align-items:start; flex-wrap:wrap; } .sync-status { width:100%; } }
   </style>
 </head>
 <body>
   <div class="app">
     <aside>
-      <div class="brand"><span class="brand-mark">🐢</span>거북이 기록장</div>
+      <div class="brand"><span class="brand-mark">🐢</span>사이테스 기록장</div>
       <nav aria-label="주요 메뉴">
         <a class="active" href="#dashboard"><span class="nav-icon">▦</span>대시보드</a>
-        <a href="#animals"><span class="nav-icon">🐢</span>동물 관리</a>
+        <a href="animals.html"><span class="nav-icon">🐢</span>동물 관리</a>
         <a href="#breeding"><span class="nav-icon">🥚</span>증식 기록</a>
-        <a href="#documents"><span class="nav-icon">▤</span>서류 · 사진</a>
+        <a href="documents.html"><span class="nav-icon">▤</span>서류 · 사진</a>
         <a href="#alerts"><span class="nav-icon">◉</span>알림</a>
       </nav>
       <div class="guide">
@@ -45,7 +47,7 @@
     <main id="dashboard">
       <div class="topbar">
         <span class="crumb">내 사육 기록 / 대시보드</span>
-        <div class="user"><span>나의 기록장</span><span class="user-badge">나</span></div>
+        <div class="user"><span>나의 기록장</span><button class="google-action" type="button" id="google-connect" disabled>Google 연결 준비 중</button><button class="google-action primary" type="button" id="google-sync" hidden>Sheets에 백업</button><button class="google-action" type="button" id="google-restore" hidden>Sheets에서 불러오기</button><span class="user-badge">나</span><span class="sync-status" id="sync-status">이 기기의 기록은 아직 브라우저에만 저장됩니다.</span></div>
       </div>
 
       <section class="hello">
@@ -53,36 +55,75 @@
           <h1>안녕하세요, 브리더님 👋</h1>
           <p>오늘도 거북이들의 기록을 차분히 정리해 볼까요?</p>
         </div>
-        <button class="add" type="button">+ 새 기록 추가</button>
+        <a class="add" href="animal-register.html">+ 새 동물 등록</a>
       </section>
 
       <section class="stats" aria-label="사육 현황 요약">
-        <article class="stat"><span class="stat-label">관리 중인 개체</span><b>20<span class="accent">+</span></b></article>
-        <article class="stat"><span class="stat-label">주요 사육 종</span><b>2종</b></article>
-        <article class="stat"><span class="stat-label">이번 증식 새끼</span><b class="accent">18마리</b></article>
+        <article class="stat"><span class="stat-label">관리 중인 개체</span><b id="active-count">0</b></article>
+        <article class="stat"><span class="stat-label">주요 사육 종</span><b id="species-count">0종</b></article>
+        <article class="stat"><span class="stat-label">기록된 부화 수</span><b class="accent" id="hatchling-count">0마리</b></article>
       </section>
 
       <div class="content">
         <section class="panel" id="animals">
-          <div class="panel-head"><h2>최근 관리한 동물</h2><a class="link" href="#animals">전체 보기</a></div>
-          <div class="animal-list">
-            <article class="animal"><span class="animal-photo">🐢</span><div><strong>별이</strong><small>별거북이 · 성체</small></div><span class="status">기록 완료</span></article>
-            <article class="animal"><span class="animal-photo">🐢</span><div><strong>테라</strong><small>다이아몬드백 테라핀 · 성체</small></div><span class="status">사진 6장</span></article>
-            <article class="animal"><span class="animal-photo">🥚</span><div><strong>2026 새끼 그룹</strong><small>다이아몬드백 테라핀 · 18마리</small></div><span class="status">증식 기록</span></article>
-          </div>
+          <div class="panel-head"><h2>최근 관리한 동물</h2><a class="link" href="animals.html">전체 보기</a></div>
+          <div class="animal-list" id="recent-animals"></div>
         </section>
 
         <div class="right">
           <section class="panel" id="breeding">
             <div class="panel-head"><h2>최근 증식 기록</h2><a class="link" href="#breeding">보기</a></div>
-            <div class="record"><span class="record-icon">🥚</span><div><b>새끼 18마리 부화</b><span>다이아몬드백 테라핀 · 이번 시즌</span></div></div>
-            <div class="record"><span class="record-icon">📷</span><div><b>부화 사진 추가</b><span>사진을 개체 기록에 연결했어요</span></div></div>
+            <div id="recent-breeding"></div>
           </section>
-          <section class="notice" id="alerts"><b>오늘 확인할 기록</b><p>새끼 거북이의 개체 사진과 부화 정보를 이어서 등록해 보세요.</p></section>
+          <section class="notice" id="alerts"><b id="notice-title">오늘 확인할 기록</b><p id="notice-text">새 동물을 등록해 나만의 사육 기록을 시작해 보세요.</p></section>
         </div>
       </div>
       <p class="project-link">이 화면은 첫 버전의 예시입니다. <a href="planning/project-plan.html">프로젝트 기획서 보기</a></p>
     </main>
   </div>
+  <script src="js/google-sheets-sync.js"></script>
+  <script async defer src="https://accounts.google.com/gsi/client" onload="googleIdentityReady()"></script>
+  <script>
+    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+    const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
+    const activeAnimals = animals.filter(animal => animal.status !== '양도 완료');
+    const speciesCount = new Set(activeAnimals.map(animal => animal.species).filter(Boolean)).size;
+    const hatchlingCount = records.reduce((total, record) => total + (Number.parseInt(record.hatchlings, 10) || 0), 0);
+    document.querySelector('#active-count').textContent = activeAnimals.length;
+    document.querySelector('#species-count').textContent = `${speciesCount}종`;
+    document.querySelector('#hatchling-count').textContent = `${hatchlingCount}마리`;
+    const recentAnimals = document.querySelector('#recent-animals');
+    if (!animals.length) {
+      recentAnimals.innerHTML = '<p class="empty">아직 등록한 동물이 없어요. 새 동물 등록으로 첫 기록을 시작해 보세요.</p>';
+    } else {
+      animals.slice(0, 3).forEach(animal => {
+        const link = document.createElement('a'); link.className = 'animal'; link.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
+        const photo = document.createElement('span'); photo.className = 'animal-photo';
+        if (animal.photo) { const image = document.createElement('img'); image.src = animal.photo; image.alt = `${animal.name} 대표 사진`; photo.append(image); } else { photo.textContent = '🐢'; }
+        const information = document.createElement('div'); const name = document.createElement('strong'); name.textContent = animal.name; const species = document.createElement('small'); species.textContent = `${animal.species} · ${animal.category}`; information.append(name, species);
+        const status = document.createElement('span'); status.className = 'status'; status.textContent = animal.status;
+        link.append(photo, information, status); recentAnimals.append(link);
+      });
+    }
+    const recentBreeding = document.querySelector('#recent-breeding');
+    if (!records.length) {
+      recentBreeding.innerHTML = '<p class="empty">아직 증식 기록이 없어요.</p>';
+    } else {
+      records.slice(0, 2).forEach(record => {
+        const owner = animals.find(animal => animal.id === record.animalId);
+        const row = document.createElement('div'); row.className = 'record';
+        const icon = document.createElement('span'); icon.className = 'record-icon'; icon.textContent = '🥚';
+        const text = document.createElement('div'); const title = document.createElement('b'); title.textContent = owner ? `${owner.name} 증식 기록` : '증식 기록'; const detail = document.createElement('span');
+        const details = []; if (record.laidAt) details.push(`산란 ${record.laidAt}`); if (record.hatchedAt) details.push(`부화 ${record.hatchedAt}`); if (record.hatchlings) details.push(`부화 수 ${record.hatchlings}`); detail.textContent = details.join(' · ') || '날짜 정보 미입력';
+        text.append(title, detail); row.append(icon, text); recentBreeding.append(row);
+      });
+    }
+    if (records.length) {
+      document.querySelector('#notice-title').textContent = '최근 증식 기록을 확인하세요';
+      document.querySelector('#notice-text').textContent = '개체 상세 화면에서 산란·부화 정보와 메모를 이어서 관리할 수 있습니다.';
+    } else if (animals.length) {
+      document.querySelector('#notice-text').textContent = '등록한 개체를 선택해 산란 또는 부화 기록을 추가해 보세요.';
+    }
+  </script>
 </body>
 </html>
