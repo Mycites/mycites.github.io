@@ -192,13 +192,19 @@
   };
   const deleteCalendarEvent = eventId => {
     if (!confirm('이 일정을 Google Calendar와 기록장에서 삭제할까요?')) return;
+    const removeFromList = message => {
+      const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]').filter(event => event.id !== eventId);
+      localStorage.setItem('cites-calendar-events', JSON.stringify(events));
+      renderCalendarEvents(); setCalendarMessage(message);
+    };
     const remove = async () => {
       try {
         if (eventId) await api(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`, { method:'DELETE' });
-        const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]').filter(event => event.id !== eventId);
-        localStorage.setItem('cites-calendar-events', JSON.stringify(events));
-        renderCalendarEvents(); setCalendarMessage('일정을 삭제했습니다.');
-      } catch (error) { setCalendarMessage(`일정을 삭제하지 못했습니다: ${error.message}`); }
+        removeFromList('일정을 삭제했습니다.');
+      } catch (error) {
+        if (/resource has been deleted|not found|404|410/i.test(error.message)) { removeFromList('Google Calendar에서 이미 삭제된 일정이라 앱 목록에서 정리했습니다.'); return; }
+        setCalendarMessage(`일정을 삭제하지 못했습니다: ${error.message}`);
+      }
     };
     if (accessToken) { remove(); return; }
     requestAccess(remove);
