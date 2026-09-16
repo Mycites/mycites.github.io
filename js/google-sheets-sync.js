@@ -1,7 +1,6 @@
 (() => {
   const CLIENT_ID = '815518831853-jm9apbu6j94cndmvqpk28i879mor0v91.apps.googleusercontent.com';
-  const SYNC_SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
-  const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+  const SYNC_SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.events';
   const SPREADSHEET_NAME = '사이테스 기록장 데이터';
   const sheetSpecs = [
     { title:'개체', key:'cites-animals', headers:['id','category','species','name','status','sex','date','memo','drivePhotoId','drivePhotoUrl','createdAt'] },
@@ -11,8 +10,6 @@
   const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records'];
   let accessToken = '';
   let tokenClient;
-  let calendarTokenClient;
-  let calendarAuthorized = false;
   const byId = id => document.querySelector(`#${id}`);
   const setStatus = message => { const status = byId('sync-status'); if (status) status.textContent = message; };
   const setBusy = (button, busy) => { if (button) button.disabled = busy; };
@@ -150,6 +147,15 @@
     request('');
   };
   const setCalendarMessage = message => { const target = byId('calendar-message'); if (target) target.textContent = message; };
+  const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
+  const renderCalendarEvents = () => {
+    const list = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]').sort((a, b) => a.date.localeCompare(b.date));
+    const target = byId('calendar-list');
+    const empty = byId('calendar-empty');
+    if (!target || !empty) return;
+    empty.hidden = list.length > 0;
+    target.innerHTML = list.slice(0, 4).map(event => `<div class="record"><span class="record-icon">📅</span><div><b>${escapeHtml(event.kind)} · ${escapeHtml(event.title)}</b><span>${escapeHtml(event.date)}${event.note ? ` · ${escapeHtml(event.note)}` : ''}</span></div></div>`).join('');
+  };
   const nextDay = value => {
     const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -162,23 +168,18 @@
     try {
       setCalendarMessage('Google Calendar에 일정을 추가하는 중입니다…');
       const kind = byId('calendar-kind').value;
-      await api('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', body:JSON.stringify({ summary:`[사이테스 기록장] ${kind}: ${title}`, description:byId('calendar-note').value.trim(), start:{ date }, end:{ date:nextDay(date) } }) });
+      const note = byId('calendar-note').value.trim();
+      const created = await api('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', body:JSON.stringify({ summary:`[사이테스 기록장] ${kind}: ${title}`, description:note, start:{ date }, end:{ date:nextDay(date) } }) });
+      const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]');
+      events.push({ id:created.id, kind, title, date, note });
+      localStorage.setItem('cites-calendar-events', JSON.stringify(events));
+      renderCalendarEvents();
       form.reset(); form.classList.remove('open'); setCalendarMessage('Google Calendar에 일정이 추가되었습니다.');
     } catch (error) { setCalendarMessage(`일정을 추가하지 못했습니다: ${error.message}`); }
   };
   const requestCalendarAccess = () => {
-    if (!calendarTokenClient) { setCalendarMessage('Google 로그인 준비가 끝날 때까지 잠시 기다려 주세요.'); return; }
-    const request = prompt => {
-      calendarTokenClient.callback = response => {
-        if (response.error) {
-          if (prompt === '' && ['interaction_required', 'consent_required'].includes(response.error)) { request('consent'); return; }
-          setCalendarMessage('Calendar 권한이 허용되지 않았습니다.'); return;
-        }
-        accessToken = response.access_token; calendarAuthorized = true; createCalendarEvent();
-      };
-      calendarTokenClient.requestAccessToken({ prompt });
-    };
-    request('');
+    if (!tokenClient) { setCalendarMessage('Google 로그인 준비가 끝날 때까지 잠시 기다려 주세요.'); return; }
+    requestAccess(createCalendarEvent);
   };
   const setupCalendar = () => {
     const form = byId('calendar-form');
@@ -221,13 +222,13 @@
   };
   setupTransfer();
   setupCalendar();
+  renderCalendarEvents();
   window.googleIdentityReady = () => {
     const connect = byId('google-connect');
     const sync = byId('google-sync');
     const drive = byId('google-drive');
     const restoreButton = byId('google-restore');
     tokenClient = google.accounts.oauth2.initTokenClient({ client_id:CLIENT_ID, scope:SYNC_SCOPES, callback:'' });
-    calendarTokenClient = google.accounts.oauth2.initTokenClient({ client_id:CLIENT_ID, scope:CALENDAR_SCOPE, callback:'' });
     connect.disabled = false; connect.textContent = 'Google 계정 연결';
     connect.addEventListener('click', () => requestAccess());
     sync.addEventListener('click', () => requestAccess(backup));
