@@ -168,21 +168,52 @@
     const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
+  const readDataUrl = file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.addEventListener('load', () => resolve(reader.result)); reader.addEventListener('error', () => reject(new Error('사진을 읽지 못했습니다.'))); reader.readAsDataURL(file); });
+  const isBreedingKind = kind => kind === '산란' || kind === '부화';
+  const updateCalendarBreedingFields = () => {
+    const kind = byId('calendar-kind').value;
+    byId('calendar-breeding-fields').hidden = !isBreedingKind(kind);
+  };
+  const populateCalendarAnimals = () => {
+    const select = byId('calendar-animal');
+    if (!select) return;
+    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]').filter(animal => animal.status !== '양도 완료');
+    select.innerHTML = `<option value="">개체를 선택해 주세요</option>${animals.map(animal => `<option value="${escapeHtml(animal.id)}">${escapeHtml(animal.name)} · ${escapeHtml(animal.species)}</option>`).join('')}`;
+  };
   const createCalendarEvent = async () => {
     const form = byId('calendar-form');
-    const title = byId('calendar-title').value.trim();
     const date = byId('calendar-date').value;
-    if (!title || !date) { setCalendarMessage('일정 제목과 날짜를 입력해 주세요.'); return; }
+    const kind = byId('calendar-kind').value;
+    const breeding = isBreedingKind(kind);
+    const animalId = byId('calendar-animal').value;
+    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+    const animal = animals.find(item => item.id === animalId);
+    const eggs = byId('calendar-eggs').value.trim();
+    const hatchlings = byId('calendar-hatchlings').value.trim();
+    const temperature = byId('calendar-temperature').value.trim();
+    const photoFile = byId('calendar-photo').files[0];
+    if (!date) { setCalendarMessage('날짜를 입력해 주세요.'); return; }
+    if (breeding && !animal) { setCalendarMessage('산란·부화 기록은 개체를 선택해 주세요.'); return; }
+    if (kind === '산란' && (!Number.isInteger(Number(eggs)) || Number(eggs) < 1)) { setCalendarMessage('산란 알 수를 1 이상 입력해 주세요.'); return; }
+    if (kind === '부화' && (!Number.isInteger(Number(hatchlings)) || Number(hatchlings) < 0)) { setCalendarMessage('부화 수를 0 이상 입력해 주세요.'); return; }
+    if (photoFile && photoFile.size > 1024 * 1024) { setCalendarMessage('기록 사진은 1MB 이하로 선택해 주세요.'); return; }
+    const title = byId('calendar-title').value.trim() || (breeding ? `${animal.name} ${kind} 기록` : '새 일정');
     try {
       setCalendarMessage('Google Calendar에 일정을 추가하는 중입니다…');
-      const kind = byId('calendar-kind').value;
       const note = byId('calendar-note').value.trim();
-      const created = await api('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', body:JSON.stringify({ summary:`[사이테스 기록장] ${kind}: ${title}`, description:note, start:{ date }, end:{ date:nextDay(date) } }) });
+      const photo = photoFile ? await readDataUrl(photoFile) : '';
+      const details = [note, breeding ? `개체: ${animal.name}` : '', breeding ? `종: ${animal.species}` : '', eggs ? `산란 알 수: ${eggs}` : '', hatchlings ? `부화 수: ${hatchlings}` : '', temperature ? `부화 온도: ${temperature}℃` : ''].filter(Boolean).join('\n');
+      const created = await api('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', body:JSON.stringify({ summary:`[사이테스 기록장] ${kind}: ${title}`, description:details, start:{ date }, end:{ date:nextDay(date) } }) });
       const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]');
       events.push({ id:created.id, kind, title, date, note });
       localStorage.setItem('cites-calendar-events', JSON.stringify(events));
+      if (breeding) {
+        const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
+        records.unshift({ id:String(Date.now()), animalId, type:kind, laidAt:kind === '산란' ? date : '', hatchedAt:kind === '부화' ? date : '', temperature, eggs, hatchlings, memo:note, photoName:photoFile?.name || '', photo, calendarEventId:created.id, createdAt:new Date().toISOString() });
+        localStorage.setItem('cites-breeding-records', JSON.stringify(records));
+      }
       renderCalendarEvents();
-      form.reset(); form.classList.remove('open'); setCalendarMessage('Google Calendar에 일정이 추가되었습니다.');
+      form.reset(); updateCalendarBreedingFields(); form.classList.remove('open'); setCalendarMessage(breeding ? '산란·부화 기록과 Google Calendar 일정을 함께 추가했습니다.' : 'Google Calendar에 일정을 추가했습니다.');
     } catch (error) { setCalendarMessage(`일정을 추가하지 못했습니다: ${error.message}`); }
   };
   const requestCalendarAccess = () => {
@@ -211,8 +242,10 @@
   };
   const setupCalendar = () => {
     const form = byId('calendar-form');
-    byId('calendar-toggle').addEventListener('click', () => form.classList.add('open'));
-    byId('calendar-cancel').addEventListener('click', () => { form.reset(); form.classList.remove('open'); });
+    populateCalendarAnimals(); updateCalendarBreedingFields();
+    byId('calendar-kind').addEventListener('change', updateCalendarBreedingFields);
+    byId('calendar-toggle').addEventListener('click', () => { populateCalendarAnimals(); form.classList.add('open'); });
+    byId('calendar-cancel').addEventListener('click', () => { form.reset(); updateCalendarBreedingFields(); form.classList.remove('open'); });
     form.addEventListener('submit', event => { event.preventDefault(); requestCalendarAccess(); });
   };
   const exportData = () => {
