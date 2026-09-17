@@ -44,7 +44,7 @@
         <section class="screen" data-screen="2">
           <h2>사진과 서류를 연결해 주세요</h2><p class="screen-intro">대표 사진은 목록에서 개체를 찾을 때 사용합니다. 지금 건너뛰어도 됩니다.</p>
           <label class="upload" for="photo"><span><strong>📷 대표 개체 사진 추가</strong><small>클릭해서 사진 파일을 선택하세요</small></span><input id="photo" type="file" accept="image/*"></label>
-          <p class="screen-intro photo-note">서류는 기본 정보 단계에서 선택합니다. 추가 사진과 증식 기록은 등록 후 상세 화면에서 관리하세요.</p>
+          <div id="photo-feedback" role="status"></div><label for="photo-name">대표 사진 이름</label><input id="photo-name" placeholder="예: 별거북 정면"><div id="additional-photos"></div><p class="screen-intro photo-note">서류는 기본 정보 단계에서 선택합니다. 사진은 마지막 단계에서 저장해야 등록됩니다.</p>
         </section>
 
         <section class="screen" data-screen="3">
@@ -57,7 +57,7 @@
       <aside class="tip"><h2>입력 도움말</h2><p id="tip-text">필수 정보부터 입력하세요. 사진과 서류는 나중에 연결해도 됩니다.</p></aside>
     </div>
   </main>
-  <script src="js/document-links.js"></script>
+  <script src="js/document-links.js"></script><script src="js/animal-photos.js"></script>
   <script>
     const form = document.querySelector('#animal-form');
     const screens = document.querySelectorAll('.screen');
@@ -135,7 +135,7 @@
       CitesDocumentLinks.renderPicker(document.querySelector('#document-candidates'), editSource, linked);
     }
     let current = 1;
-    const tips = { 1:'처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.', 2:'사진은 나중에 추가할 수 있습니다. 지금은 대표 사진 한 장이면 충분해요.', 3:'내용을 확인한 뒤 등록을 완료하면 다음 단계에서 목록과 상세 화면에 연결됩니다.' };
+    const tips = { 1:'처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.', 2:'사진을 선택하면 미리보기가 나타납니다. 사육환경 사진은 다른 동물과 함께 사용할 수 있어요.', 3:'내용을 확인한 뒤 등록을 완료하면 다음 단계에서 목록과 상세 화면에 연결됩니다.' };
     function showStep(step) {
       current = step;
       screens.forEach(item => item.classList.toggle('active', Number(item.dataset.screen) === step));
@@ -153,7 +153,7 @@
       document.querySelector('#summary-scientific-name').textContent = scientificName.value || '미입력';
       document.querySelector('#summary-name').textContent = document.querySelector('#animal-name').value || '-';
       document.querySelector('#summary-status').textContent = document.querySelector('#status').value || '-';
-      document.querySelector('#summary-photo').textContent = document.querySelector('#photo').files.length ? '사진 1장 선택됨' : selectedPhoto ? '기존 사진 유지' : '미등록';
+      document.querySelector('#summary-photo').textContent = (selectedPhoto ? '대표 사진 1장' : '대표 사진 없음') + ' · 추가 사진 ' + photoEditor.values().length + '장';
     }
     next.addEventListener('click', () => {
       if (current === 1 && !form.reportValidity()) return;
@@ -162,19 +162,22 @@
     previous.addEventListener('click', () => showStep(Math.max(current - 1, 1)));
     let selectedPhoto = editSource?.photo || '';
     let photoLoading = false;
-    document.querySelector('#photo').addEventListener('change', event => {
-      const file = event.target.files[0];
-      if (!file) { selectedPhoto = editSource?.photo || ''; return; }
-      photoLoading = true;
-      const reader = new FileReader();
-      reader.addEventListener('load', () => { selectedPhoto = reader.result; photoLoading = false; });
-      reader.addEventListener('error', () => { photoLoading = false; alert('사진을 읽지 못했습니다.'); });
-      reader.readAsDataURL(file);
+    document.querySelector('#photo-name').value = editSource?.photoName || '';
+    const photoEditor = CitesPhotos.editor(document.querySelector('#additional-photos'), editSource?.photos || []);
+    const showPhoto = message => { const box = document.querySelector('#photo-feedback'); box.replaceChildren(); if (selectedPhoto) box.append(CitesPhotos.image(selectedPhoto, '대표 사진')); const text = document.createElement('p'); text.textContent = message; box.append(text); };
+    showPhoto(selectedPhoto ? '저장된 대표 사진입니다.' : '선택한 사진이 여기에 표시됩니다.');
+    let photoReadVersion = 0;
+    document.querySelector('#photo').addEventListener('change', async event => {
+      const file = event.target.files[0]; if (!file) return;
+      const version = ++photoReadVersion; photoLoading = true; showPhoto('사진을 읽고 있습니다…');
+      try { const data = await CitesPhotos.read(file); if (version !== photoReadVersion) return; selectedPhoto = data; document.querySelector('#photo-name').value = file.name.replace(/\.[^.]+$/, ''); showPhoto('사진 선택 완료 · 마지막 단계에서 저장해 주세요.'); }
+      catch (error) { if (version !== photoReadVersion) return; event.target.value = ''; showPhoto(error.message + ' 기존 사진은 유지됩니다.'); }
+      finally { if (version === photoReadVersion) photoLoading = false; }
     });
     done.addEventListener('click', () => {
       if (!form.reportValidity()) { showStep(1); return; }
       if (!document.querySelector('#animal-name').value.trim() || !document.querySelector('#species').value.trim()) { alert('종명과 이름·관리 번호를 입력해 주세요.'); showStep(1); return; }
-      if (photoLoading) { alert('사진을 읽는 중입니다. 잠시 후 저장해 주세요.'); return; }
+      if (photoLoading || photoEditor.loading()) { alert('사진을 읽는 중입니다. 잠시 후 저장해 주세요.'); return; }
       const animal = {
         id: editSource?.id || crypto.randomUUID(),
         category: document.querySelector('#category').value,
@@ -186,6 +189,8 @@
         date: document.querySelector('#date').value,
         memo: document.querySelector('#memo').value.trim(),
         photo: selectedPhoto,
+        photoName: document.querySelector("#photo-name").value.trim(),
+        photos: photoEditor.values(),
         createdAt: new Date().toISOString()
       };
       if (document.querySelector('#photo').files.length) { animal.drivePhotoId = ''; animal.drivePhotoUrl = ''; }

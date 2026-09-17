@@ -113,6 +113,8 @@
       });
       const current = existing.get(item.id);
       if (current?.photo) item.photo = current.photo;
+      if (current?.photos) item.photos = current.photos;
+      if (current?.photoName) item.photoName = current.photoName;
       if (current?.fileData) item.fileData = current.fileData;
       return item;
     });
