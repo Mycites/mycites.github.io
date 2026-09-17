@@ -1,5 +1,6 @@
 (() => {
   const normalize = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const isEvent = doc => ['transfer', 'death'].includes(doc.kind);
   const sameSpecies = (a, b) => normalize(a).replaceAll(' ', '') === normalize(b).replaceAll(' ', '');
   function candidates(scientificName, documents, animals) {
     const target = typeof scientificName === 'object' ? scientificName : { scientificName };
@@ -7,7 +8,7 @@
     const matchesAnimal = (entry, animal) => entry.scientificName && animal.scientificName
       ? normalize(entry.scientificName) === normalize(animal.scientificName)
       : Boolean(entry.species && animal.species && sameSpecies(entry.species, animal.species));
-    return documents.flatMap(doc => {
+    return documents.filter(doc => !isEvent(doc)).flatMap(doc => {
       const entries = doc.speciesEntries?.length ? doc.speciesEntries : [{ ...doc, count:doc.initialCount ?? (doc.animalIds || []).length }];
       const matches = entries.filter(entry => matchesAnimal(entry, target));
       if (!matches.length) return [];
@@ -29,6 +30,7 @@
     const animals = JSON.parse(oldAnimals || '[]');
     const previous = animals.find(item => item.id === animal.id);
     if (editing && !previous) throw new Error('수정할 동물이 삭제되었습니다. 목록을 새로고침해 주세요.');
+    if (editing && previous.statusDocumentId && animal.status !== previous.status) throw new Error('양도·폐사 서류로 처리된 상태입니다. 해당 서류를 삭제해 처리를 되돌린 뒤 변경해 주세요.');
     if (editing) animal = { ...previous, ...animal, createdAt:previous.createdAt, updatedAt:new Date().toISOString() };
     const documents = JSON.parse(oldDocuments || '[]');
     const available = candidates(animal, documents, animals);
@@ -39,7 +41,7 @@
       if (!match || (!retained && match.slots < 1)) throw new Error('선택한 서류의 학명이나 수량이 변경되었습니다. 서류 후보를 다시 확인해 주세요.');
       match.document.animalIds = [...new Set([...(match.document.animalIds || []), animal.id])];
     });
-    if (editing) documents.forEach(doc => { if (!selected.includes(doc.id)) doc.animalIds = (doc.animalIds || []).filter(id => id !== animal.id); });
+    if (editing) documents.forEach(doc => { if (!isEvent(doc) && !selected.includes(doc.id)) doc.animalIds = (doc.animalIds || []).filter(id => id !== animal.id); });
     let documentsWritten = false;
     try {
       if (selected.length || editing) {
@@ -65,11 +67,12 @@
     selected.forEach(id => {
       const doc = documents.find(item => item.id === id);
       if (!doc) throw new Error('선택한 서류가 없어졌습니다. 다시 선택해 주세요.');
+      if (isEvent(doc)) throw new Error('양도·폐사 서류의 동물은 서류 등록에서 처리해 주세요.');
       if ((doc.animalIds || []).includes(animalId)) return;
       const match = available.find(item => item.document.id === id);
       if (!match || match.slots < 1) throw new Error('서류의 종 또는 수량이 변경되어 연결할 수 없습니다. 다시 확인해 주세요.');
     });
-    documents.forEach(doc => {
+    documents.filter(doc => !isEvent(doc)).forEach(doc => {
       const ids = new Set(doc.animalIds || []);
       if (selected.has(doc.id)) ids.add(animalId); else ids.delete(animalId);
       doc.animalIds = [...ids];
@@ -85,7 +88,7 @@
     if (!documents.length) {
       const message = document.createElement('p'); message.textContent = '등록된 서류가 없습니다. 서류 · 사진 화면에서 먼저 등록해 주세요.'; container.append(message); return;
     }
-    documents.forEach(doc => {
+    documents.filter(doc => !isEvent(doc)).forEach(doc => {
       const match = available.find(item => item.document.id === doc.id);
       const alreadyLinked = Boolean(target.id && (doc.animalIds || []).includes(target.id));
       const label = document.createElement('label'); label.className = 'document-candidate';

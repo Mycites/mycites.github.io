@@ -94,7 +94,7 @@
   <script>
     const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
     const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
-    const activeAnimals = animals.filter(animal => animal.status !== '양도 완료');
+    const activeAnimals = animals.filter(animal => !['양도 완료', '폐사'].includes(animal.status));
     const speciesCount = new Set(activeAnimals.map(animal => animal.species).filter(Boolean)).size;
     const hatchlingCount = records.reduce((total, record) => total + (Number.parseInt(record.hatchlings, 10) || 0), 0);
     document.querySelector('#active-count').textContent = activeAnimals.length;

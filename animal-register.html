@@ -36,7 +36,7 @@
             <div class="field"><label for="category">생물 종류 <span class="required">*</span></label><select id="category" required><option value="">선택해 주세요</option><option>거북이</option><option>뱀</option><option>도마뱀</option><option>조류</option><option>기타</option></select></div>
             <div class="field"><label for="species">종명 <span class="required">*</span></label><input id="species" placeholder="예: 다이아몬드백 테라핀" required></div>
             <div class="field"><label for="animal-name">이름 또는 관리 번호 <span class="required">*</span></label><input id="animal-name" placeholder="예: 테라 또는 2026-01" required></div>
-            <div class="field"><label for="status">보유 상태 <span class="required">*</span></label><select id="status" required><option value="보유 중">보유 중</option><option value="양도 예정">양도 예정</option><option value="양도 완료">양도 완료</option></select></div>
+            <div class="field"><label for="status">보유 상태 <span class="required">*</span></label><select id="status" required><option value="보유 중">보유 중</option><option value="양도 예정">양도 예정</option><option value="양도 완료">양도 완료</option><option value="폐사">폐사</option></select></div>
           </div>
           <div class="field" style="margin-top:17px"><label for="scientific-name">학명 (선택)</label><select id="scientific-name" aria-describedby="scientific-name-help"><option value="">미입력</option></select><p id="scientific-name-help" class="screen-intro" aria-live="polite"></p></div><div class="optional"><h3>연결할 서류 (선택)</h3><p id="document-candidate-help" class="screen-intro" aria-live="polite"></p><div id="document-candidates"></div></div><div class="optional"><h3>선택 정보</h3><div class="form-grid"><div class="field"><label for="sex">성별</label><select id="sex"><option value="미입력">미입력</option><option>수컷</option><option>암컷</option><option>미상</option></select></div><div class="field"><label for="date">출생일 또는 입고일</label><input id="date" type="date"></div><div class="field full"><label for="memo">메모</label><textarea id="memo" placeholder="특징, 건강 상태 등 기억할 내용을 적어 주세요."></textarea></div></div></div>
         </section>
@@ -129,6 +129,7 @@
       document.querySelector('.title-row p').textContent = '정보와 연결 서류를 수정하세요. 새 사진을 선택하지 않으면 기존 사진을 유지합니다.';
       document.querySelector('#animal-name').value = editSource.name;
       document.querySelector('#status').value = editSource.status;
+      if (editSource.statusDocumentId) { document.querySelector('#status').disabled = true; document.querySelector('#status').title = '양도·폐사 서류에서 처리된 상태'; }
       done.textContent = '수정 저장';
       const linked = JSON.parse(localStorage.getItem('cites-documents') || '[]').filter(doc => (doc.animalIds || []).includes(editId)).map(doc => doc.id);
       CitesDocumentLinks.renderPicker(document.querySelector('#document-candidates'), editSource, linked);

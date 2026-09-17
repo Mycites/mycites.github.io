@@ -114,17 +114,17 @@
       const documents = documentsForAnimal();
       const target = document.querySelector('#documents');
       const select = document.querySelector('#quantity-document');
-      if (select) { select.innerHTML = documents.map(document => `<option value="${escapeHtml(document.id)}">${escapeHtml(document.title)} · 남은 수량 ${remainingQuantity(document)}마리</option>`).join(''); updateQuantitySpecies(); }
+      if (select) { select.innerHTML = documents.filter(document => !CitesRecords.isEvent(document)).map(document => `<option value="${escapeHtml(document.id)}">${escapeHtml(document.title)} · 남은 수량 ${remainingQuantity(document)}마리</option>`).join(''); updateQuantitySpecies(); }
       if (!documents.length) { target.innerHTML = '<p class="empty">연결된 서류가 없습니다. 서류 연결 버튼에서 등록된 서류를 선택해 주세요.</p>'; return; }
       target.innerHTML = documents.map(document => {
         const connectedAnimals = document.animalIds.map(animalId => animals.find(item => item.id === animalId)?.name).filter(Boolean).map(escapeHtml).join(', ');
         const reference = document.reference ? `<span class="tag">관리 번호 ${escapeHtml(document.reference)}</span>` : '';
         const fileLink = document.fileData ? `<a class="document-link" href="${escapeHtml(document.fileData)}" download="${escapeHtml(document.fileName || document.title)}">첨부 파일 내려받기</a>` : '';
         const remaining = remainingQuantity(document);
-        const status = `<span class="tag">연결된 동물 ${new Set(document.animalIds || []).size}마리</span>`;
+        const status = `<span class="tag">${document.kind === 'death' ? '폐사 서류 · ' : document.kind === 'transfer' ? '양도 서류 · ' : ''}연결된 동물 ${new Set(document.animalIds || []).size}마리</span>`;
         const changes = (document.quantityChanges || []).map(change => `${escapeHtml(change.reason)} ${change.count}마리`).join(', ');
         const changeText = changes ? `<p class="record-note">수량 감소 기록: ${changes}</p>` : '';
-        const decreaseButton = remaining > 0 ? `<button class="cancel quantity-button" type="button" data-document-id="${escapeHtml(document.id)}">양도·폐사 수량 기록</button>` : '';
+        const decreaseButton = !CitesRecords.isEvent(document) && remaining > 0 ? `<button class="cancel quantity-button" type="button" data-document-id="${escapeHtml(document.id)}">양도·폐사 수량 기록</button>` : '';
         return `<article class="record"><div class="record-title"><b>📄 ${escapeHtml(document.title)}</b><span class="record-date">${displayDate((document.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${reference}<span class="tag">대상 종: ${escapeHtml(document.species || animal.species)}</span><span class="tag">등록 수량 ${initialQuantity(document)}마리</span>${status}<span class="tag">연결 개체: ${connectedAnimals || '미입력'}</span></div>${changeText}${fileLink}${decreaseButton}</article>`;
       }).join('');
       target.querySelectorAll('[data-document-id]').forEach(button => button.addEventListener('click', () => {
