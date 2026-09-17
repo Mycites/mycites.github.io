@@ -24,9 +24,12 @@
   function migrate() {
     const old = localStorage.getItem('cites-animals'); if (!old) return;
     const animals = JSON.parse(old); if (!animals.some(animal => animal.photos?.some(photo => photo.type === '사육환경 사진' && photo.data))) return;
-    const result = compact(animals), previous = localStorage.getItem(libraryKey);
-    try { localStorage.setItem(libraryKey, JSON.stringify(result.photos)); localStorage.setItem('cites-animals', JSON.stringify(result.animals)); }
-    catch (error) { if (previous === null) localStorage.removeItem(libraryKey); else localStorage.setItem(libraryKey, previous); throw error; }
+    const result = compact(animals);
+    // Retain the original in memory while freeing duplicated image storage.
+    // Both writes are synchronous; restore it if the library write fails.
+    localStorage.setItem('cites-animals', JSON.stringify(result.animals));
+    try { localStorage.setItem(libraryKey, JSON.stringify(result.photos)); }
+    catch (error) { localStorage.setItem('cites-animals', old); throw error; }
   }
   function gallery(container, animal) {
     const photos = [...(animal.photo ? [{data:animal.photo, name:animal.photoName || '대표 개체 사진', type:'개체 사진'}] : []), ...resolve(animal.photos)];
