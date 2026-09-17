@@ -65,6 +65,9 @@
     const next = document.querySelector('#next');
     const done = document.querySelector('#done');
     const tip = document.querySelector('#tip-text');
+    const editId = new URLSearchParams(location.search).get('edit');
+    const editSource = JSON.parse(localStorage.getItem('cites-animals') || '[]').find(item => item.id === editId);
+    if (editId && !editSource) { alert('수정할 동물을 찾을 수 없습니다.'); location.replace('animals.html'); }
     const scientificName = document.querySelector('#scientific-name');
     const normalizeSpecies = value => String(value || '').replace(/\s+/g, '').toLowerCase();
     function selectedDocumentIds() {
@@ -74,24 +77,10 @@
     function updateDocumentCandidates() {
       const selected = candidateName === scientificName.value ? selectedDocumentIds() : [];
       candidateName = scientificName.value;
-      const candidates = CitesDocumentLinks.candidates(scientificName.value,
-        JSON.parse(localStorage.getItem('cites-documents') || '[]'),
-        JSON.parse(localStorage.getItem('cites-animals') || '[]'));
-      const list = document.querySelector('#document-candidates');
-      list.replaceChildren();
-      document.querySelector('#document-candidate-help').textContent = !scientificName.value
-        ? '학명을 선택하면 같은 학명의 서류가 표시됩니다.'
-        : candidates.length ? '연결할 서류를 선택해 주세요. 수량이 모두 연결되거나 소진된 서류는 선택할 수 없습니다.'
-        : '이 학명과 일치하는 서류가 없습니다.';
-      candidates.forEach(item => {
-        const label = document.createElement('label'); label.className = 'document-candidate';
-        const input = document.createElement('input'); input.type = 'checkbox'; input.value = item.document.id;
-        input.disabled = item.slots < 1; input.checked = !input.disabled && selected.includes(input.value);
-        const text = document.createElement('span'); text.textContent = item.document.title || '이름 없는 서류';
-        const detail = document.createElement('small');
-        detail.textContent = (item.document.reference ? item.document.reference + ' · ' : '') + '추가 연결 가능 ' + item.slots + '마리';
-        text.append(detail); label.append(input, text); list.append(label);
-      });
+      const target = { id:editSource?.id, species:document.querySelector('#species').value.trim(), scientificName:scientificName.value };
+      document.querySelector('#document-candidate-help').textContent = '등록된 서류를 선택하세요. 종명·학명이 맞지 않거나 등록 수량을 초과하면 선택할 수 없습니다.';
+      CitesDocumentLinks.renderPicker(document.querySelector('#document-candidates'), target, selected);
+
     }
     scientificName.addEventListener('change', updateDocumentCandidates);
     function updateScientificNames() {
@@ -120,9 +109,29 @@
       updateDocumentCandidates();
     }
     document.querySelector('#species').addEventListener('input', updateScientificNames);
-    window.addEventListener('pageshow', updateScientificNames);
+    window.addEventListener('pageshow', event => { if (event.persisted) updateScientificNames(); });
     window.addEventListener('storage', event => { if (event.key === 'cites-documents' || event.key === 'cites-animals') updateScientificNames(); });
-    updateScientificNames();
+    const copyId = new URLSearchParams(location.search).get('copy');
+    const copySource = editSource || JSON.parse(localStorage.getItem('cites-animals') || '[]').find(item => item.id === copyId);
+    if (copySource) {
+      for (const key of ['category', 'species', 'sex', 'date', 'memo']) document.getElementById(key).value = copySource[key] || (key === 'sex' ? '미입력' : '');
+      updateScientificNames();
+      if (copySource.scientificName) {
+        if (![...scientificName.options].some(option => option.value === copySource.scientificName)) scientificName.add(new Option(copySource.scientificName, copySource.scientificName));
+        scientificName.disabled = false; scientificName.value = copySource.scientificName;
+      }
+      document.querySelector('.title-row p').textContent = '기존 동물의 기본 정보를 복사했습니다. 이름·관리 번호를 입력하고 서류를 새로 선택해 주세요. 사진은 별도로 추가합니다.';
+    }
+    if (!copySource) updateScientificNames(); else updateDocumentCandidates();
+    if (editSource) {
+      document.querySelector('h1').textContent = '동물 정보 수정';
+      document.querySelector('.title-row p').textContent = '정보와 연결 서류를 수정하세요. 새 사진을 선택하지 않으면 기존 사진을 유지합니다.';
+      document.querySelector('#animal-name').value = editSource.name;
+      document.querySelector('#status').value = editSource.status;
+      done.textContent = '수정 저장';
+      const linked = JSON.parse(localStorage.getItem('cites-documents') || '[]').filter(doc => (doc.animalIds || []).includes(editId)).map(doc => doc.id);
+      CitesDocumentLinks.renderPicker(document.querySelector('#document-candidates'), editSource, linked);
+    }
     let current = 1;
     const tips = { 1:'처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.', 2:'사진은 나중에 추가할 수 있습니다. 지금은 대표 사진 한 장이면 충분해요.', 3:'내용을 확인한 뒤 등록을 완료하면 다음 단계에서 목록과 상세 화면에 연결됩니다.' };
     function showStep(step) {
@@ -142,25 +151,30 @@
       document.querySelector('#summary-scientific-name').textContent = scientificName.value || '미입력';
       document.querySelector('#summary-name').textContent = document.querySelector('#animal-name').value || '-';
       document.querySelector('#summary-status').textContent = document.querySelector('#status').value || '-';
-      document.querySelector('#summary-photo').textContent = document.querySelector('#photo').files.length ? '사진 1장 선택됨' : '미등록';
+      document.querySelector('#summary-photo').textContent = document.querySelector('#photo').files.length ? '사진 1장 선택됨' : selectedPhoto ? '기존 사진 유지' : '미등록';
     }
     next.addEventListener('click', () => {
       if (current === 1 && !form.reportValidity()) return;
       showStep(Math.min(current + 1, 3));
     });
     previous.addEventListener('click', () => showStep(Math.max(current - 1, 1)));
-    let selectedPhoto = '';
+    let selectedPhoto = editSource?.photo || '';
+    let photoLoading = false;
     document.querySelector('#photo').addEventListener('change', event => {
       const file = event.target.files[0];
-      if (!file) return;
+      if (!file) { selectedPhoto = editSource?.photo || ''; return; }
+      photoLoading = true;
       const reader = new FileReader();
-      reader.addEventListener('load', () => { selectedPhoto = reader.result; });
+      reader.addEventListener('load', () => { selectedPhoto = reader.result; photoLoading = false; });
+      reader.addEventListener('error', () => { photoLoading = false; alert('사진을 읽지 못했습니다.'); });
       reader.readAsDataURL(file);
     });
     done.addEventListener('click', () => {
       if (!form.reportValidity()) { showStep(1); return; }
+      if (!document.querySelector('#animal-name').value.trim() || !document.querySelector('#species').value.trim()) { alert('종명과 이름·관리 번호를 입력해 주세요.'); showStep(1); return; }
+      if (photoLoading) { alert('사진을 읽는 중입니다. 잠시 후 저장해 주세요.'); return; }
       const animal = {
-        id: String(Date.now()),
+        id: editSource?.id || crypto.randomUUID(),
         category: document.querySelector('#category').value,
         species: document.querySelector('#species').value.trim(),
         scientificName: scientificName.value,
@@ -172,7 +186,8 @@
         photo: selectedPhoto,
         createdAt: new Date().toISOString()
       };
-      try { CitesDocumentLinks.saveAnimal(animal, selectedDocumentIds()); }
+      if (document.querySelector('#photo').files.length) { animal.drivePhotoId = ''; animal.drivePhotoUrl = ''; }
+      try { CitesDocumentLinks.saveAnimal(animal, selectedDocumentIds(), Boolean(editSource)); }
       catch (error) { alert(error.message); updateDocumentCandidates(); showStep(1); return; }
       location.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
     });

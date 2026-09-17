@@ -66,8 +66,8 @@ function unitTests() {
     await page.reload();
     await page.locator('#species').fill('테라핀');
     await page.locator('#scientific-name').selectOption('Malaclemys terrapin');
-    assert.equal(await page.locator('#document-candidates input').count(), 3);
-    assert.equal(await page.locator('#document-candidates input:disabled').count(), 2);
+    assert.equal(await page.locator('#document-candidates input').count(), 4);
+    assert.equal(await page.locator('#document-candidates input:disabled').count(), 0);
     await page.locator('#document-candidates input[value=available]').check();
     await page.locator('#scientific-name').selectOption('Other species');
     assert.equal(await page.locator('#document-candidates input:checked').count(), 0);
