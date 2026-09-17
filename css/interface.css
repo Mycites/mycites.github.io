@@ -1,0 +1,98 @@
+/* Shared visual rhythm for the dashboard and animal screens. */
+body { line-height:1.6; }
+main, aside, section, .panel, .right, .content, .info { min-width:0; }
+h1 { letter-spacing:-.04em; }
+h2 { line-height:1.5; }
+button, input, select, textarea { font-family:inherit; }
+a, button, input, select, textarea, summary { -webkit-tap-highlight-color:transparent; }
+:focus-visible { outline:3px solid #a7d7c2; outline-offset:3px; }
+.button, .add, .next, .done, .cancel, .google-action { min-height:40px; text-decoration:none; }
+.status, .tag { border-radius:7px; }
+.record, .card, .animal, .document-candidate { overflow-wrap:anywhere; }
+.page-dashboard .app { grid-template-columns:220px minmax(0,1fr); }
+.page-dashboard aside { gap:24px; }
+.page-dashboard .guide { background:transparent; border:0; padding:10px; }
+.page-dashboard .guide img { display:none; }
+.page-dashboard .topbar { align-items:start; margin-bottom:28px; }
+.data-tools { max-width:580px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.data-tools summary { padding:9px 14px; color:var(--green); font-size:.84rem; font-weight:700; cursor:pointer; }
+.data-tools .user { padding:12px; display:flex; flex-wrap:wrap; border-top:1px solid var(--line); }
+.data-tools .sync-status { width:100%; line-height:1.6; }
+.page-dashboard .hello h1 { font-size:clamp(1.8rem,4vw,2.5rem); }
+.page-dashboard .hello p { font-size:.9rem; }
+.page-dashboard .stats { gap:12px; margin-bottom:24px; }
+.page-dashboard .content { gap:18px; }
+.page-dashboard .right { gap:18px; }
+.page-dashboard .panel { border-radius:15px; }
+.page-dashboard .animal { grid-template-columns:48px minmax(0,1fr) auto; }
+.page-dashboard .animal small { display:block; font-size:.8rem; }
+.page-dashboard button.link { border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#fff; cursor:pointer; }
+.page-dashboard .notice { background:#eef5f1; color:var(--ink); border:1px solid var(--line); }
+.page-dashboard .project-link { font-size:.75rem; }
+.page-animals main, .page-detail main, .page-register main { max-width:1040px; }
+.page-animals .top { align-items:end; margin-bottom:24px; }
+.page-animals .top h1 { margin-top:16px; }
+.page-animals .sub { font-size:.9rem; }
+.page-animals .card:hover { transform:none; }
+.page-animals .grid { gap:18px; }
+.page-animals .picture { height:180px; background:#eff5f1; }
+.page-animals .info { padding:20px; }
+.page-detail .top { align-items:center; }
+.page-detail .actions { gap:8px; }
+.page-detail .actions .button, .page-detail .actions .cancel { padding:9px 12px; font-size:.83rem; }
+.page-detail .hero { grid-template-columns:190px minmax(0,1fr); gap:24px; padding:24px; }
+.page-detail .picture { min-height:190px; max-height:240px; background:#eff5f1; }
+.page-detail .hero h1 { font-size:clamp(1.8rem,4vw,2.5rem); }
+.page-detail section { margin-top:18px; }
+.page-detail .record-data .tag { color:var(--muted); background:transparent; padding:2px 0; border-radius:0; }
+.page-detail .record-data .tag + .tag::before { content:'·'; margin-right:8px; }
+.page-detail .record-title { align-items:start; }
+.page-detail .record-title b { overflow-wrap:anywhere; }
+.page-detail .record-date { white-space:nowrap; }
+.page-register .layout { grid-template-columns:minmax(0,1fr) 220px; gap:18px; }
+.page-register .tip { padding:18px; background:#f3f7f4; border-radius:12px; }
+.page-register .tip h2 { font-size:.9rem; }
+.page-register .tip p { font-size:.82rem; }
+.page-register .form-card { border-radius:15px; }
+.page-register .title-row p, .page-register .screen-intro { font-size:.9rem; }
+.page-register .screen-intro { margin-bottom:18px; }
+.page-register .photo-note { margin-top:16px; }
+.page-register .summary-item b { overflow-wrap:anywhere; min-width:0; }
+.page-register .summary-item span { flex-shrink:0; }
+.page-register .brand { white-space:nowrap; }
+@media(max-width:1000px) {
+  .page-dashboard .content { grid-template-columns:minmax(0,1fr); }
+  .page-dashboard .topbar { flex-wrap:wrap; }
+}
+@media(max-width:760px) {
+  .page-dashboard .app { grid-template-columns:minmax(0,1fr); }
+  .page-dashboard aside { min-width:0; max-width:100%; gap:12px; }
+  .page-dashboard nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); min-width:0; max-width:100%; }
+  .page-dashboard nav a { padding:9px 11px; font-size:.82rem; gap:6px; }
+  .page-dashboard main { padding:24px 16px 40px; }
+  .page-dashboard .topbar { gap:12px; margin-bottom:24px; }
+  .data-tools { width:100%; }
+  .page-dashboard .stats { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .page-dashboard .stat { padding:14px 9px; }
+  .page-dashboard .stat-label { font-size:.72rem; }
+  .page-dashboard .stat b { font-size:1.35rem; }
+  .page-dashboard .panel { padding:18px; }
+  .page-dashboard .panel-head { gap:10px; }
+  .page-dashboard .hello { gap:16px; }
+  .page-dashboard .animal { gap:8px; padding:9px; grid-template-columns:40px minmax(0,1fr) auto; }
+  .page-dashboard .animal-photo { width:40px; height:40px; }
+  .page-animals .top { align-items:start; }
+  .page-detail .top { align-items:start; gap:16px; }
+  .page-detail .hero { grid-template-columns:minmax(0,1fr); gap:18px; padding:20px; }
+  .page-detail section { padding:20px; }
+  .page-detail .record-title { flex-direction:column; gap:4px; }
+  .page-register .layout { grid-template-columns:minmax(0,1fr); }
+  .page-register .tip { order:1; }
+  .page-register .top { flex-wrap:wrap; gap:8px; }
+  .page-register .steps { gap:6px; }
+  .page-register .step { font-size:.76rem; }
+}
+
+.page-dashboard .brand { font-size:.95rem; white-space:nowrap; gap:8px; padding:0 4px; }
+.page-dashboard .brand-mark { flex-shrink:0; }
+.page-dashboard .content { align-items:start; }

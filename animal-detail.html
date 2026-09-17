@@ -16,8 +16,9 @@
     @media (max-width:680px) { main { padding:24px 16px 48px; } .top { align-items:start; flex-direction:column; } .hero { grid-template-columns:1fr; } .picture { min-height:180px; } dl, .breeding-form { grid-template-columns:1fr; } .field.full { grid-column:auto; } .section-head { align-items:start; flex-direction:column; } .section-head .button { width:100%; min-height:46px; } .save-row { flex-direction:column-reverse; } .save-row button { width:100%; min-height:46px; } .animal-checks { grid-template-columns:1fr; } }
     .document-candidate { display:flex; align-items:start; gap:10px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; overflow-wrap:anywhere; } .document-candidate input { width:auto; margin-top:5px; } .document-candidate small { display:block; color:var(--muted); font-weight:400; }
   </style>
+  <link rel="stylesheet" href="css/interface.css">
 </head>
-<body>
+<body class="page-detail">
   <main id="app"></main>
   <script src="js/document-links.js"></script>
   <script src="js/record-store.js"></script>
@@ -120,11 +121,11 @@
         const reference = document.reference ? `<span class="tag">관리 번호 ${escapeHtml(document.reference)}</span>` : '';
         const fileLink = document.fileData ? `<a class="document-link" href="${escapeHtml(document.fileData)}" download="${escapeHtml(document.fileName || document.title)}">첨부 파일 내려받기</a>` : '';
         const remaining = remainingQuantity(document);
-        const status = remaining === 0 ? '<span class="tag unavailable">사용 불가 · 수량 0마리</span>' : `<span class="tag">사용 가능 · 남은 수량 ${remaining}마리</span>`;
+        const status = `<span class="tag">연결된 동물 ${new Set(document.animalIds || []).size}마리</span>`;
         const changes = (document.quantityChanges || []).map(change => `${escapeHtml(change.reason)} ${change.count}마리`).join(', ');
         const changeText = changes ? `<p class="record-note">수량 감소 기록: ${changes}</p>` : '';
         const decreaseButton = remaining > 0 ? `<button class="cancel quantity-button" type="button" data-document-id="${escapeHtml(document.id)}">양도·폐사 수량 기록</button>` : '';
-        return `<article class="record"><div class="record-title"><b>📄 ${escapeHtml(document.title)}</b><span class="record-date">${displayDate((document.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${reference}<span class="tag">대상 종: ${escapeHtml(document.species || animal.species)}</span><span class="tag">처음 수량 ${initialQuantity(document)}마리</span>${status}<span class="tag">연결 개체: ${connectedAnimals || '미입력'}</span></div>${changeText}${fileLink}${decreaseButton}</article>`;
+        return `<article class="record"><div class="record-title"><b>📄 ${escapeHtml(document.title)}</b><span class="record-date">${displayDate((document.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${reference}<span class="tag">대상 종: ${escapeHtml(document.species || animal.species)}</span><span class="tag">등록 수량 ${initialQuantity(document)}마리</span>${status}<span class="tag">연결 개체: ${connectedAnimals || '미입력'}</span></div>${changeText}${fileLink}${decreaseButton}</article>`;
       }).join('');
       target.querySelectorAll('[data-document-id]').forEach(button => button.addEventListener('click', () => {
         select.value = button.dataset.documentId;

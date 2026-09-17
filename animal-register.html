@@ -20,8 +20,9 @@
     @media (max-width:380px) { .form-card { padding:18px; } .steps { gap:4px; font-size:.7rem; } .step { padding:9px 5px; } .actions { align-items:stretch; flex-direction:column-reverse; } .actions button { width:100%; min-height:46px; } .actions .hidden { display:none; } }
     .document-candidate { display:flex; align-items:start; gap:10px; padding:12px; margin-top:8px; border:1px solid var(--line); border-radius:10px; overflow-wrap:anywhere; } .document-candidate input { width:auto; margin-top:5px; } .document-candidate small { display:block; color:var(--muted); font-weight:400; }
   </style>
+  <link rel="stylesheet" href="css/interface.css">
 </head>
-<body>
+<body class="page-register">
   <main>
     <header class="top"><a class="back" href="index.html">← 대시보드로 돌아가기</a><span class="brand">🐢 거북이 기록장</span></header>
     <section class="title-row"><div><h1>새 동물 등록</h1><p>필수 정보만 먼저 입력해도 됩니다. 나머지 기록은 나중에 추가할 수 있어요.</p></div></section>
@@ -43,7 +44,7 @@
         <section class="screen" data-screen="2">
           <h2>사진과 서류를 연결해 주세요</h2><p class="screen-intro">대표 사진은 목록에서 개체를 찾을 때 사용합니다. 지금 건너뛰어도 됩니다.</p>
           <label class="upload" for="photo"><span><strong>📷 대표 개체 사진 추가</strong><small>클릭해서 사진 파일을 선택하세요</small></span><input id="photo" type="file" accept="image/*"></label>
-          <div class="optional"><h3>선택적으로 함께 기록할 수 있어요</h3><div class="chips"><span class="chip">개체 사진</span><span class="chip">사육장 시설 사진</span><span class="chip">관련 서류</span><span class="chip">산란 · 부화 사진</span></div></div>
+          <p class="screen-intro photo-note">서류는 기본 정보 단계에서 선택합니다. 추가 사진과 증식 기록은 등록 후 상세 화면에서 관리하세요.</p>
         </section>
 
         <section class="screen" data-screen="3">
@@ -53,7 +54,7 @@
 
         <div class="actions"><button class="prev hidden" type="button" id="prev">이전</button><button class="next" type="button" id="next">다음</button><button class="done" type="button" id="done" hidden>등록 완료</button></div>
       </form>
-      <aside class="tip"><h2>입력 도움말</h2><p id="tip-text">처음에는 종명, 이름·관리 번호, 보유 상태만 입력해도 충분합니다.</p><div class="turtle">🐢</div></aside>
+      <aside class="tip"><h2>입력 도움말</h2><p id="tip-text">필수 정보부터 입력하세요. 사진과 서류는 나중에 연결해도 됩니다.</p></aside>
     </div>
   </main>
   <script src="js/document-links.js"></script>

@@ -47,7 +47,7 @@ function unitTests() {
   const server = http.createServer((req, res) => {
     const filename = path.join(root, new URL(req.url, 'http://localhost').pathname);
     if (!filename.startsWith(root + path.sep) || !fs.existsSync(filename) || fs.statSync(filename).isDirectory()) { res.writeHead(404); res.end(); return; }
-    res.setHeader('Content-Type', filename.endsWith('.js') ? 'text/javascript' : 'text/html; charset=utf-8');
+    res.setHeader('Content-Type', filename.endsWith('.css') ? 'text/css' : filename.endsWith('.js') ? 'text/javascript' : 'text/html; charset=utf-8');
     res.end(fs.readFileSync(filename));
   }).listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));

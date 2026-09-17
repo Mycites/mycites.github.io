@@ -15,7 +15,7 @@ const root=path.resolve(__dirname,'..');
   console.log('PASS decrease-history protection, exhausted document rejection, atomic delete rollback');
 }
 (async()=>{
-const server=http.createServer((req,res)=>{const f=path.join(root,new URL(req.url,'http://local').pathname);if(!f.startsWith(root+path.sep)||!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',f.endsWith('.js')?'text/javascript':'text/html; charset=utf-8');res.end(fs.readFileSync(f));}).listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+const server=http.createServer((req,res)=>{const f=path.join(root,new URL(req.url,'http://local').pathname);if(!f.startsWith(root+path.sep)||!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',f.endsWith('.css')?'text/css':f.endsWith('.js')?'text/javascript':'text/html; charset=utf-8');res.end(fs.readFileSync(f));}).listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
 let browser;try{
 browser=await chromium.launch({headless:true,channel:process.env.BROWSER_CHANNEL||undefined});const page=await browser.newPage();const base='http://127.0.0.1:'+server.address().port;const errors=[];page.on('pageerror',e=>errors.push(e.message));let accept=true,warning='';page.on('dialog',async d=>{warning=d.message();await(accept?d.accept():d.dismiss());});
 await page.goto(base+'/documents.html');
