@@ -43,13 +43,19 @@
     });
     if (editing) documents.forEach(doc => { if (!isEvent(doc) && !selected.includes(doc.id)) doc.animalIds = (doc.animalIds || []).filter(id => id !== animal.id); });
     let documentsWritten = false;
+    const oldShared = localStorage.getItem("cites-shared-photos");
+    let sharedWritten = false;
     try {
       if (selected.length || editing) {
         localStorage.setItem('cites-documents', JSON.stringify(documents));
         documentsWritten = true;
       }
-      localStorage.setItem('cites-animals', JSON.stringify(editing ? animals.map(item => item.id === animal.id ? animal : item) : [animal, ...animals]));
+      const nextAnimals = editing ? animals.map(item => item.id === animal.id ? animal : item) : [animal, ...animals];
+      const packed = window.CitesPhotos ? CitesPhotos.compact(nextAnimals) : {animals:nextAnimals};
+      if (packed.photos) { localStorage.setItem('cites-shared-photos', JSON.stringify(packed.photos)); sharedWritten = true; }
+      localStorage.setItem('cites-animals', JSON.stringify(packed.animals));
     } catch (error) {
+      if (sharedWritten) { if (oldShared === null) localStorage.removeItem("cites-shared-photos"); else localStorage.setItem("cites-shared-photos", oldShared); }
       if (documentsWritten) {
         if (oldDocuments === null) localStorage.removeItem('cites-documents');
         else localStorage.setItem('cites-documents', oldDocuments);

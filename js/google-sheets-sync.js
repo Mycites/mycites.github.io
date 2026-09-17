@@ -7,7 +7,7 @@
     { title:'서류', key:'cites-documents', headers:['id','title','kind','effects','species','speciesEntries','initialCount','quantityChanges','reference','animalIds','fileName','driveFileId','driveFileUrl','createdAt'] },
     { title:'증식기록', key:'cites-breeding-records', headers:['id','animalId','type','laidAt','hatchedAt','temperature','eggs','hatchlings','memo','photoName','drivePhotoId','drivePhotoUrl','createdAt'] }
   ];
-  const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records'];
+  const transferKeys = ['cites-animals', 'cites-documents', 'cites-breeding-records', 'cites-shared-photos'];
   let accessToken = '';
   let tokenClient;
   const byId = id => document.querySelector(`#${id}`);
@@ -271,6 +271,7 @@
     reader.addEventListener('load', () => {
       try {
         const data = JSON.parse(reader.result);
+        if (data.records && data.records['cites-shared-photos'] === undefined) data.records['cites-shared-photos'] = [];
         if (data.format !== 'cites-backup-v1' || !data.records || !transferKeys.every(key => Array.isArray(data.records[key]))) throw new Error('사이테스 기록 파일 형식이 아닙니다.');
         if (!confirm('현재 화면의 기록을 선택한 파일의 기록으로 바꿉니다. 현재 기록은 먼저 파일로 내보낸 뒤 진행하세요. 계속할까요?')) return;
         const previous = Object.fromEntries(transferKeys.map(key => [key, localStorage.getItem(key)]));

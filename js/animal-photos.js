@@ -8,17 +8,37 @@
     try { await img.decode(); } catch { throw new Error('열 수 없는 사진 파일입니다.'); }
     return data;
   }
+  const libraryKey = 'cites-shared-photos';
+  const library = () => JSON.parse(localStorage.getItem(libraryKey) || '[]');
+  const resolve = photos => (photos || []).map(photo => photo.data ? {...photo} : {...library().find(item => item.id === photo.id), ...photo}).filter(photo => photo.data);
+  function compact(animals, existing = library()) {
+    const pool = existing.map(photo => ({...photo}));
+    const records = animals.map(animal => ({...animal, photos:(animal.photos || []).map(photo => {
+      if (photo.type !== '사육환경 사진' || !photo.data) return photo;
+      let stored = pool.find(item => item.data === photo.data);
+      if (!stored) { stored = {...photo, id:pool.some(item => item.id === photo.id) ? crypto.randomUUID() : photo.id}; pool.push(stored); }
+      return {id:stored.id, type:photo.type, name:photo.name};
+    })}));
+    return {animals:records, photos:pool};
+  }
+  function migrate() {
+    const old = localStorage.getItem('cites-animals'); if (!old) return;
+    const animals = JSON.parse(old); if (!animals.some(animal => animal.photos?.some(photo => photo.type === '사육환경 사진' && photo.data))) return;
+    const result = compact(animals), previous = localStorage.getItem(libraryKey);
+    try { localStorage.setItem(libraryKey, JSON.stringify(result.photos)); localStorage.setItem('cites-animals', JSON.stringify(result.animals)); }
+    catch (error) { if (previous === null) localStorage.removeItem(libraryKey); else localStorage.setItem(libraryKey, previous); throw error; }
+  }
   function gallery(container, animal) {
-    const photos = [...(animal.photo ? [{data:animal.photo, name:animal.photoName || '대표 개체 사진', type:'개체 사진'}] : []), ...(animal.photos || [])];
+    const photos = [...(animal.photo ? [{data:animal.photo, name:animal.photoName || '대표 개체 사진', type:'개체 사진'}] : []), ...resolve(animal.photos)];
     if (!photos.length) { const text = document.createElement('p'); text.textContent = '등록된 사진이 없습니다. 정보 수정에서 추가하세요.'; container.append(text); }
     const grid = document.createElement('div'); grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:18px'; container.append(grid);
     photos.forEach(photo => { const card = document.createElement('div'); card.style.maxWidth = '100%'; const title = document.createElement('p'); title.textContent = `${photo.name} · ${photo.type}`; title.style.overflowWrap = 'anywhere'; const link = document.createElement('a'); link.href = photo.data; link.download = photo.name || '사진'; link.textContent = '내려받기'; card.append(image(photo.data, photo.name), title, link); grid.append(card); });
   }
   function editor(container, initial) {
-    let photos = initial.map(photo => ({...photo})), busy = false;
+    let photos = resolve(initial), busy = false;
     container.innerHTML = '<h3>추가 사진</h3><label>사진 종류<select data-kind><option>개체 사진</option><option>사육환경 사진</option></select></label><label>사진 이름<input data-name placeholder="예: 거실 사육장 전체"></label><label>사진 추가 (1MB 이하)<input data-file type="file" accept="image/jpeg,image/png,image/webp"></label><p data-message role="status"></p><div data-selected></div><h3>등록된 사육환경 사진에서 선택</h3><div data-shared></div>';
     const list = container.querySelector('[data-selected]'), message = container.querySelector('[data-message]');
-    const shared = [...new Map(JSON.parse(localStorage.getItem('cites-animals') || '[]').flatMap(animal => animal.photos || []).filter(photo => photo.type === '사육환경 사진').map(photo => [photo.id, photo])).values()];
+    const shared = library();
     function render() {
       list.replaceChildren();
       photos.forEach(photo => { const card = document.createElement('div'); const name = document.createElement('input'); name.value = photo.name; name.setAttribute('aria-label', '사진 이름 수정'); name.addEventListener('input', () => photo.name = name.value); const kind = document.createElement('p'); kind.textContent = photo.type; const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '연결 해제'; remove.addEventListener('click', () => { photos = photos.filter(item => item.id !== photo.id); render(); }); card.append(image(photo.data, photo.name), kind, name, remove); list.append(card); });
@@ -35,5 +55,6 @@
     });
     render(); return {values:() => photos.map(photo => ({...photo, name:photo.name.trim() || photo.type})), loading:() => busy};
   }
-  window.CitesPhotos = {image, read, gallery, editor};
+  window.CitesPhotos = {image, read, gallery, editor, compact, migrate};
+  try { migrate(); } catch { alert("공유 사진 정리를 저장하지 못했습니다. 기존 사진은 유지됩니다. 저장 공간을 확인해 주세요."); }
 })();
