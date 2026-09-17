@@ -80,6 +80,30 @@
     try { localStorage.setItem('cites-documents', JSON.stringify(documents)); }
     catch { throw new Error('서류 연결을 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); }
   }
+  function previewFile(doc) {
+    const match = /^data:(application\/pdf|image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(doc.fileData || '');
+    if (!match) { alert('이 파일은 미리 볼 수 없습니다. 서류 수정에서 PDF 또는 사진을 다시 첨부해 주세요.'); return; }
+    let url;
+    try { url = URL.createObjectURL(new Blob([Uint8Array.from(atob(match[2]), character => character.charCodeAt(0))], {type:match[1]})); }
+    catch { alert('첨부 파일을 읽지 못했습니다. 서류 파일을 다시 확인해 주세요.'); return; }
+    const dialog = document.createElement('dialog');
+    dialog.style.cssText = 'width:min(960px,94vw);max-width:94vw;height:88vh;max-height:88vh;padding:18px;border:1px solid #bcd6c9;border-radius:14px;color:#18352d;background:white;box-sizing:border-box;';
+    dialog.setAttribute('aria-label', '첨부 서류 보기');
+    const panel = document.createElement('div'); panel.style.cssText = 'height:100%;display:flex;flex-direction:column;gap:12px;min-width:0';
+    const header = document.createElement('div'); header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px';
+    const title = document.createElement('strong'); title.textContent = doc.title || '첨부 서류'; title.style.overflowWrap = 'anywhere';
+    const close = document.createElement('button'); close.type = 'button'; close.textContent = '닫기'; close.className = 'cancel'; close.style.flexShrink = '0'; close.addEventListener('click', () => dialog.close());
+    header.append(title, close);
+    const download = document.createElement('a'); download.href = url; download.download = doc.fileName || (match[1] === 'application/pdf' ? '서류.pdf' : '서류사진'); download.textContent = '첨부 파일 내려받기';
+    const hint = document.createElement('small'); hint.textContent = '미리보기가 나타나지 않으면 파일을 내려받아 확인하세요.';
+    const viewer = document.createElement(match[1] === 'application/pdf' ? 'iframe' : 'img');
+    viewer.src = url; viewer.style.cssText = 'width:100%;flex:1;min-height:0;border:0;object-fit:contain;background:#f5f8f6';
+    if (viewer.tagName === 'IFRAME') viewer.title = 'PDF 서류 미리보기'; else viewer.alt = doc.fileName || '첨부 서류 사진';
+    panel.append(header, download, hint, viewer); dialog.append(panel); document.body.append(dialog);
+    dialog.addEventListener('close', () => { dialog.remove(); URL.revokeObjectURL(url); }, {once:true});
+    dialog.addEventListener('click', event => { if (event.target === dialog) { const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); } });
+    dialog.showModal(); close.focus();
+  }
   function renderPicker(container, target, selectedIds = []) {
     const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
     const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
@@ -98,7 +122,14 @@
       const text = document.createElement('span'); text.textContent = doc.title || '이름 없는 서류';
       const detail = document.createElement('small');
       detail.textContent = [doc.reference, alreadyLinked ? '현재 연결됨' : '', match ? `추가 연결 가능 ${match.slots}마리` : '종명·학명 불일치'].filter(Boolean).join(' · ');
-      text.append(detail); label.append(input, text); container.append(label);
+      text.append(detail); label.append(input, text);
+      text.style.minWidth = '0'; text.style.flex = '1'; label.style.flexWrap = 'wrap';
+      if (doc.fileData) {
+        const view = document.createElement('button'); view.type = 'button'; view.textContent = '서류 보기'; view.className = 'cancel';
+        view.style.cssText = 'flex-shrink:0;padding:6px 10px;font-size:.8rem';
+        view.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); previewFile(doc); }); label.append(view);
+      } else { const missing = document.createElement('small'); missing.textContent = '첨부 없음'; label.append(missing); }
+      container.append(label);
       input.addEventListener('change', () => {
         if (!input.checked) return;
         const freshDocuments = JSON.parse(localStorage.getItem('cites-documents') || '[]');
