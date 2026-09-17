@@ -34,7 +34,7 @@
           <h2>기본 정보를 입력해 주세요</h2><p class="screen-intro">별표가 있는 항목만 입력하면 다음 단계로 넘어갈 수 있습니다.</p>
           <div class="form-grid">
             <div class="field"><label for="category">생물 종류 <span class="required">*</span></label><select id="category" required><option value="">선택해 주세요</option><option>거북이</option><option>뱀</option><option>도마뱀</option><option>조류</option><option>기타</option></select></div>
-            <div class="field"><label for="species">종명 <span class="required">*</span></label><input id="species" placeholder="예: 다이아몬드백 테라핀" required></div>
+            <div class="field"><label for="species">종명 <span class="required">*</span></label><select id="registered-species" aria-label="등록 서류의 종명 선택"><option value="">등록된 종명 선택 또는 직접 입력</option></select><input id="species" placeholder="종명을 직접 입력할 수도 있어요" required></div>
             <div class="field"><label for="animal-name">이름 또는 관리 번호 <span class="required">*</span></label><input id="animal-name" placeholder="예: 테라 또는 2026-01" required></div>
             <div class="field"><label for="status">보유 상태 <span class="required">*</span></label><select id="status" required><option value="보유 중">보유 중</option><option value="양도 예정">양도 예정</option><option value="양도 완료">양도 완료</option><option value="폐사">폐사</option></select></div>
           </div>
@@ -79,12 +79,25 @@
       const selected = candidateName === scientificName.value ? selectedDocumentIds() : [];
       candidateName = scientificName.value;
       const target = { id:editSource?.id, species:document.querySelector('#species').value.trim(), scientificName:scientificName.value };
-      document.querySelector('#document-candidate-help').textContent = '등록된 서류를 선택하세요. 종명·학명이 맞지 않거나 등록 수량을 초과하면 선택할 수 없습니다.';
+      document.querySelector('#document-candidate-help').textContent = editSource ? '등록된 서류를 선택하세요. 종명·학명이 맞지 않거나 등록 수량을 초과하면 선택할 수 없습니다.' : '선택한 종에 연결 가능한 수량이 남은 서류만 표시합니다.';
       CitesDocumentLinks.renderPicker(document.querySelector('#document-candidates'), target, selected);
 
     }
     scientificName.addEventListener('change', updateDocumentCandidates);
+    const speciesPicker = document.querySelector('#registered-species');
+    speciesPicker.addEventListener('change', () => {
+      if (!speciesPicker.value) { document.querySelector('#species').focus(); return; }
+      document.querySelector('#species').value = speciesPicker.value; updateScientificNames();
+    });
     function updateScientificNames() {
+      const knownSpecies = new Map();
+      JSON.parse(localStorage.getItem('cites-documents') || '[]').forEach(doc => {
+        (doc.speciesEntries?.length ? doc.speciesEntries : [doc]).forEach(entry => { const name = String(entry.species || '').trim(); if (name && !knownSpecies.has(normalizeSpecies(name))) knownSpecies.set(normalizeSpecies(name), name); });
+      });
+      speciesPicker.replaceChildren(new Option('등록된 종명 선택 또는 직접 입력', ''));
+      [...knownSpecies.values()].sort((a,b) => a.localeCompare(b, 'ko')).forEach(name => speciesPicker.add(new Option(name, name)));
+      speciesPicker.value = knownSpecies.get(normalizeSpecies(document.querySelector('#species').value)) || '';
+
       const previousValue = scientificName.value;
       const species = normalizeSpecies(document.querySelector('#species').value);
       const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
