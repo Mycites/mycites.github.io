@@ -104,6 +104,16 @@
     }
     write({ 'cites-documents':documents.filter(item => item.id !== id), ...(isEvent(doc) ? {'cites-animals':animals} : {}) });
   }
+  function cancelManualChange(documentId, index, expected) {
+    const documents = read('cites-documents');
+    const doc = documents.find(item => item.id === documentId);
+    const change = doc?.quantityChanges?.[index];
+    if (!change || JSON.stringify(change) !== expected) throw new Error('감소 내역이 변경되었습니다. 새로고침 후 다시 확인해 주세요.');
+    if (change.eventDocumentId) throw new Error('자동 처리 내역은 연결된 양도·폐사 서류에서 되돌려 주세요.');
+    doc.cancelledQuantityChanges = [...(doc.cancelledQuantityChanges || []), {...change, cancelledAt:new Date().toISOString()}];
+    doc.quantityChanges.splice(index, 1);
+    write({'cites-documents':documents});
+  }
   function deleteAnimal(id) {
     write({
       'cites-documents':read('cites-documents').map(doc => ({ ...doc, animalIds:(doc.animalIds || []).filter(animalId => animalId !== id) })),
@@ -111,5 +121,5 @@
       'cites-animals':read('cites-animals').filter(animal => animal.id !== id)
     });
   }
-  window.CitesRecords = { saveDocument, deleteDocument, deleteAnimal, isEvent, eventSpecies };
+  window.CitesRecords = { saveDocument, deleteDocument, cancelManualChange, deleteAnimal, isEvent, eventSpecies };
 })();
