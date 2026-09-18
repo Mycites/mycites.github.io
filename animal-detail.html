@@ -191,7 +191,8 @@
       document.querySelector('#quantity-document').insertAdjacentHTML('afterend', '<div class="field"><label for="quantity-species">대상 종</label><select id="quantity-species"></select></div>');
       document.querySelector('#quantity-document').addEventListener('change', updateQuantitySpecies);
       document.querySelector('#animal-delete').addEventListener('click', () => {
-        if (!confirm('이 동물과 해당 증식기록을 삭제하고 서류 연결을 해제할까요? 서류 자체와 Google Calendar·Drive의 백업은 유지됩니다. 삭제는 되돌릴 수 없습니다.')) return;
+        try { CitesRecords.assertAnimalDeletable(id); } catch(error) { alert(error.message); return; }
+        if (!confirm('이 개체를 삭제할까요? 삭제는 되돌릴 수 없습니다.')) return;
         try { CitesRecords.deleteAnimal(id); location.href = 'animals.html'; } catch (error) { alert(error.message); }
       });
       const gallery = document.createElement('section'); const heading = document.createElement('h2'); heading.textContent = '개체 · 사육환경 사진'; gallery.append(heading); CitesPhotos.gallery(gallery, animal); document.querySelector('.hero').after(gallery);

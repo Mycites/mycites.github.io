@@ -114,12 +114,17 @@
     doc.quantityChanges.splice(index, 1);
     write({'cites-documents':documents});
   }
+  function assertAnimalDeletable(id) {
+    const animal = read('cites-animals').find(item => item.id === id);
+    const documents = read('cites-documents').filter(doc => (doc.animalIds || []).includes(id) || (doc.effects || []).some(effect => effect.animalId === id) || (doc.quantityChanges || []).some(change => change.animalId === id));
+    const records = read('cites-breeding-records').filter(record => [record.animalId, record.motherId, record.fatherId].includes(id));
+    if (documents.length || records.length || animal?.statusDocumentId) {
+      throw new Error('이 개체는 삭제할 수 없습니다. 연결 서류 ' + documents.length + '건, 증식 기록 ' + records.length + '건이 있습니다. 먼저 서류 연결을 해제하고 증식 기록의 부모 연결을 수정하거나 기록을 삭제해 주세요. 양도·폐사 처리된 개체는 해당 처리 서류부터 정리해 주세요.');
+    }
+  }
   function deleteAnimal(id) {
-    write({
-      'cites-documents':read('cites-documents').map(doc => ({ ...doc, animalIds:(doc.animalIds || []).filter(animalId => animalId !== id) })),
-      'cites-breeding-records':read('cites-breeding-records').filter(record => record.animalId !== id),
-      'cites-animals':read('cites-animals').filter(animal => animal.id !== id)
-    });
+    assertAnimalDeletable(id);
+    write({'cites-animals':read('cites-animals').filter(animal => animal.id !== id)});
   }
   // Cancelled manual entries are no longer retained.
   try {
@@ -129,5 +134,5 @@
       write({'cites-documents':documents});
     }
   } catch { console.warn('취소 내역 정리를 저장하지 못했습니다. 다음에 다시 시도합니다.'); }
-  window.CitesRecords = { saveDocument, deleteDocument, cancelManualChange, deleteAnimal, isEvent, eventSpecies };
+  window.CitesRecords = { saveDocument, deleteDocument, cancelManualChange, assertAnimalDeletable, deleteAnimal, isEvent, eventSpecies };
 })();

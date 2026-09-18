@@ -44,7 +44,8 @@
         const edit=document.createElement('a');edit.href='animal-register.html?edit='+encodeURIComponent(animal.id);edit.textContent='수정';
         const remove=document.createElement('button');remove.type='button';remove.textContent='삭제';remove.style.cssText='padding:5px 10px;border:1px solid #dfb2aa;border-radius:7px;background:white;color:#a52d21;cursor:pointer';
         remove.addEventListener('click',()=>{
-          if(!confirm(animal.name+' 개체와 이 개체의 증식 기록을 삭제할까요? 서류 연결은 해제되며, 서류 원본과 공유 사육환경 사진은 유지됩니다. 삭제는 되돌릴 수 없습니다.'))return;
+          try { CitesRecords.assertAnimalDeletable(animal.id); } catch(error) { alert(error.message); return; }
+          if(!confirm(animal.name+' 개체를 삭제할까요? 삭제는 되돌릴 수 없습니다.'))return;
           try{CitesRecords.deleteAnimal(animal.id);location.reload();}catch(error){alert(error.message);}
         });
         actions.append(edit,remove);card.append(link,actions);list.append(card);
