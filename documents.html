@@ -15,6 +15,14 @@
     #extract-choice { margin-top:12px; padding:16px; border:1px solid #bcd6c9; border-radius:10px; background:#fff; } .extract-metadata { margin:12px 0 20px; padding-bottom:18px; border-bottom:1px solid var(--line); } .metadata-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:12px 0; } .metadata-check { display:flex; align-items:center; gap:8px; margin-top:8px; } .metadata-check input { width:auto; margin:0; } .metadata-grid input { min-width:0; } @media(max-width:680px) { .metadata-grid { grid-template-columns:1fr; } }
     .document { padding:24px; } .head h2 { font-size:1rem; line-height:1.6; overflow-wrap:anywhere; } .head>div { min-width:0; } .date { margin:5px 0 0; overflow-wrap:anywhere; } .connection-status { flex-shrink:0; border-radius:8px; background:var(--mint); padding:6px 10px; font-size:.8rem; font-weight:700; color:var(--green); } .document-species-list { margin:16px 0; } .document-species { margin:4px 0; font-size:.88rem; } .document-species span { color:var(--muted); margin-left:6px; font-style:italic; } .connection-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); background:#f5f8f6; border-radius:12px; padding:16px 0; margin:16px 0; } .connection-metrics>div { padding:0 16px; } .connection-metrics>div+div { border-left:1px solid var(--line); } .connection-metrics dt { color:var(--muted); font-size:.8rem; } .connection-metrics dd { margin:5px 0 0; font-size:1.4rem; font-weight:750; } .connection-metrics small { margin-left:4px; font-size:.78rem; font-weight:400; color:var(--muted); } .document-footer { display:flex; justify-content:space-between; gap:16px; align-items:center; } .document-footer .animals { margin:0; } .animals>span { display:block; font-size:.75rem; color:var(--muted); margin-bottom:4px; } .document-actions { display:flex; gap:8px; flex-shrink:0; } .document-actions .cancel { padding:8px 12px; font-size:.82rem; } @media(max-width:680px) { .document { padding:18px; } .document-footer { align-items:start; flex-direction:column; } .connection-metrics>div { padding:0 8px; } .connection-metrics dt { font-size:.72rem; } .document-species span { display:block; margin-left:0; overflow-wrap:anywhere; } }
     @media(max-width:680px) { .summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; } .stat { padding:12px 9px; } .stat span { font-size:.72rem; } .stat b { font-size:1.25rem; } }
+    .document { padding:16px 18px; } .list { gap:10px; }
+    .document-species-list { margin:8px 0; }
+    .connection-metrics { display:flex; flex-wrap:wrap; gap:8px 18px; padding:8px 12px; margin:10px 0; }
+    .connection-metrics>div { display:flex; align-items:baseline; gap:8px; padding:0; }
+    .connection-metrics>div+div { border:0; }
+    .connection-metrics dd { margin:0; font-size:1.05rem; }
+    .document-footer { gap:10px; } .document-actions { flex-wrap:wrap; }
+    @media(max-width:680px) { .document { padding:14px; } .head { gap:6px; } .document-footer { gap:8px; } }
   </style>
 </head>
 <body>
@@ -79,7 +87,7 @@
         const cancelled = document.cancelledQuantityChanges || [];
         const audit = cancelled.length ? '<details><summary>취소한 수동 기록 (' + cancelled.length + '건)</summary>' + cancelled.map(change => '<p class="helper">' + escapeHtml(change.reason || '기타') + ' ' + Number(change.count || 0) + '마리 · 취소 ' + displayDate(change.cancelledAt) + '</p>').join('') + '</details>' : '';
         const metrics = amounts.map(([label, count]) => '<div><dt>' + label + '</dt><dd>' + count + '<small>마리</small></dd></div>').join('');
-        list.insertAdjacentHTML('beforeend', `<article class="document"><div class="head"><div><h2>${escapeHtml(document.title)}</h2><p class="date">등록 ${displayDate(document.createdAt)}${document.reference ? ' · 관리번호 ' + escapeHtml(document.reference) : ''}</p></div>${status}</div><div class="document-species-list">${speciesText}</div><dl class="connection-metrics">${metrics}</dl>${history}${audit}<div class="document-footer"><div class="animals"><span>연결 동물</span><div>${animalLinks}</div></div><div class="document-actions"><button class="cancel" type="button" data-edit-document="${escapeHtml(document.id)}">수정</button><button class="cancel" type="button" data-delete-document="${escapeHtml(document.id)}">삭제</button></div></div></article>`);
+        list.insertAdjacentHTML('beforeend', `<article class="document"><div class="head"><div><h2>${escapeHtml(document.title)}</h2><p class="date">등록 ${displayDate(document.createdAt)}${document.reference ? ' · 관리번호 ' + escapeHtml(document.reference) : ''}</p></div>${status}</div><div class="document-species-list">${speciesText}</div><dl class="connection-metrics">${metrics}</dl>${history}${audit}<div class="document-footer"><div class="animals"><span>연결 동물</span><div>${animalLinks}</div></div><div class="document-actions">${document.fileData ? `<button class="cancel" type="button" data-view-document="${escapeHtml(document.id)}">서류 보기</button>` : ''}<button class="cancel" type="button" data-edit-document="${escapeHtml(document.id)}">수정</button><button class="cancel" type="button" data-delete-document="${escapeHtml(document.id)}">삭제</button></div></div></article>`);
       });
     }
     }
@@ -137,6 +145,13 @@
     });
     document.querySelector('#document-cancel').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); entries.innerHTML = ''; form.classList.remove('open'); });
     list.addEventListener('click', event => {
+      const view = event.target.closest('[data-view-document]');
+      if (view) {
+        const doc = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === view.dataset.viewDocument);
+        if (doc?.fileData) CitesDocumentLinks.previewFile(doc);
+        else alert('첨부파일을 찾을 수 없습니다. 새로고침해 주세요.');
+        return;
+      }
       const correction = event.target.closest('[data-cancel-change]');
       if (correction) {
         if (!confirm('이 수동 감소 기록을 취소하고 해당 수량을 복구할까요? 동물 상태와 폐사·양도 서류는 유지됩니다.')) return;

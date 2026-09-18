@@ -152,5 +152,5 @@
     });
     if (!container.children.length) { const message = document.createElement('p'); message.textContent = '현재 종에 연결 가능한 서류가 없습니다. 서류 없이 등록하거나 새 서류를 추가할 수 있어요.'; container.append(message); }
   }
-  window.CitesDocumentLinks = { candidates, saveAnimal, saveLinks, renderPicker };
+  window.CitesDocumentLinks = { candidates, saveAnimal, saveLinks, renderPicker, previewFile };
 })();
