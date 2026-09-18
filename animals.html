@@ -48,7 +48,9 @@
           if(!confirm(animal.name+' 개체를 삭제할까요? 삭제는 되돌릴 수 없습니다.'))return;
           try{CitesRecords.deleteAnimal(animal.id);location.reload();}catch(error){alert(error.message);}
         });
-        actions.append(edit,remove);card.append(link,actions);list.append(card);
+        const copy=document.createElement('a');copy.href='animal-register.html?copy='+encodeURIComponent(animal.id);copy.textContent='복사 등록';copy.style.cssText='padding:5px 10px;border-radius:7px;background:#18755d;color:white;text-decoration:none;font-weight:700';
+        actions.style.flexWrap='wrap';
+        actions.append(copy,edit,remove);card.append(link,actions);list.append(card);
       });
     }
   </script>

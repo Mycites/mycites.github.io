@@ -25,7 +25,7 @@
     });
   }
   function saveAnimal(animal, documentIds, editing = false, count = 1) {
-    if (!Number.isInteger(count) || count < 1 || count > 100 || (editing && count !== 1)) throw new Error("등록 마릿수는 1~100 사이의 정수로 입력해 주세요.");
+    if (!Number.isInteger(count) || count < 1 || count > 10 || (editing && count !== 1)) throw new Error("등록 마릿수는 1~10 사이의 정수로 입력해 주세요.");
     const oldAnimals = localStorage.getItem('cites-animals');
     const oldDocuments = localStorage.getItem('cites-documents');
     const animals = JSON.parse(oldAnimals || '[]');
