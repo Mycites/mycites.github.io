@@ -25,7 +25,7 @@
     .project-link { margin-top:28px; color:var(--muted); font-size:.82rem; } .project-link a { color:var(--green); }
     @media (max-width:760px) { .app { grid-template-columns:1fr; } aside { gap:16px; padding:16px; } nav { display:flex; overflow:auto; } nav a { white-space:nowrap; } .guide { display:none; } main { padding:22px 18px 40px; } .topbar { margin-bottom:28px; } .stats, .content { grid-template-columns:1fr; } .hello { align-items:start; flex-direction:column; } }
     @media (max-width:760px) { .topbar { align-items:start; flex-direction:column; } .user { align-items:start; flex-wrap:wrap; } .sync-status { width:100%; } }
-    #recent-animals { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    #recent-animals { grid-template-columns:repeat(4,minmax(0,1fr)); }
     #recent-animals .animal { display:flex;flex-direction:column;align-items:flex-start;min-width:0; }
     #recent-animals .animal>div { width:100%;min-width:0; }
     #recent-animals strong,#recent-animals small { display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
@@ -109,7 +109,7 @@
     if (!animals.length) {
       recentAnimals.innerHTML = '<p class="empty">아직 등록한 동물이 없어요. 새 동물 등록으로 첫 기록을 시작해 보세요.</p>';
     } else {
-      [...animals].sort((a,b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 3).forEach(animal => {
+      [...animals].sort((a,b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 8).forEach(animal => {
         const link = document.createElement('a'); link.className = 'animal'; link.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
         const photo = document.createElement('span'); photo.className = 'animal-photo';
         if (animal.photo) { const image = document.createElement('img'); image.src = animal.photo; image.alt = `${animal.name} 대표 사진`; photo.append(image); } else { photo.textContent = '🐢'; }
