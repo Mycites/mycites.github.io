@@ -85,7 +85,7 @@
       const form = document.querySelector('#breeding-form');
       const toggle = document.querySelector('#record-toggle');
       const cancel = document.querySelector('#record-cancel');
-      toggle.addEventListener('click', () => { location.href = 'documents.html'; });
+      toggle.addEventListener('click', () => form.classList.add('open'));
       cancel.addEventListener('click', () => { form.reset(); form.classList.remove('open'); });
       form.addEventListener('submit', event => {
         event.preventDefault();
@@ -175,6 +175,7 @@
       });
       const gallery = document.createElement('section'); const heading = document.createElement('h2'); heading.textContent = '개체 · 사육환경 사진'; gallery.append(heading); CitesPhotos.gallery(gallery, animal); document.querySelector('.hero').after(gallery);
       setupDocumentForm(); setupQuantityForm(); renderDocuments(); setupRecordForm(); renderRecords();
+      if (new URLSearchParams(location.search).get('record') === 'new') { document.querySelector('#breeding-form').classList.add('open'); document.querySelector('#breeding-form').scrollIntoView(); }
     }
   </script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="breedingCalendarReady()"></script>
