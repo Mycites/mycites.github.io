@@ -127,6 +127,11 @@
     window.addEventListener('storage', event => { if (event.key === 'cites-documents' || event.key === 'cites-animals') updateScientificNames(); });
     const copyId = new URLSearchParams(location.search).get('copy');
     const copySource = editSource || JSON.parse(localStorage.getItem('cites-animals') || '[]').find(item => item.id === copyId);
+    if (copyId && !editSource) {
+      const field = document.createElement('div'); field.className='field full';
+      field.innerHTML='<label for="copy-count">등록 마릿수</label><input id="copy-count" type="number" min="1" max="100" step="1" value="1" required><p class="helper">여러 마리는 입력한 이름 뒤에 번호를 붙입니다. 이미 있는 이름은 건너뜁니다. 선택한 서류에 전체 마릿수만큼 여유가 있어야 합니다.</p>';
+      document.querySelector('#animal-name').closest('.field').after(field);
+    }
     if (copySource) {
       for (const key of ['category', 'species', 'sex', 'date', 'memo']) document.getElementById(key).value = copySource[key] || (key === 'sex' ? '미입력' : '');
       updateScientificNames();
@@ -167,6 +172,7 @@
       document.querySelector('#summary-name').textContent = document.querySelector('#animal-name').value || '-';
       document.querySelector('#summary-status').textContent = document.querySelector('#status').value || '-';
       document.querySelector('#summary-photo').textContent = (selectedPhoto ? '대표 사진 1장' : '대표 사진 없음') + ' · 추가 사진 ' + photoEditor.values().length + '장';
+      if (document.querySelector('#copy-count')) document.querySelector('#summary-name').textContent += ' · ' + document.querySelector('#copy-count').value + '마리 등록 (여러 마리는 자동 번호)';
     }
     next.addEventListener('click', () => {
       if (current === 1 && !form.reportValidity()) return;
@@ -188,6 +194,7 @@
       finally { if (version === photoReadVersion) photoLoading = false; }
     });
     done.addEventListener('click', () => {
+      const copyCount = Number(document.querySelector('#copy-count')?.value || 1);
       if (!form.reportValidity()) { showStep(1); return; }
       if (!document.querySelector('#animal-name').value.trim() || !document.querySelector('#species').value.trim()) { alert('종명과 이름·관리 번호를 입력해 주세요.'); showStep(1); return; }
       if (photoLoading || photoEditor.loading()) { alert('사진을 읽는 중입니다. 잠시 후 저장해 주세요.'); return; }
@@ -207,9 +214,9 @@
         createdAt: new Date().toISOString()
       };
       if (document.querySelector('#photo').files.length) { animal.drivePhotoId = ''; animal.drivePhotoUrl = ''; }
-      try { CitesDocumentLinks.saveAnimal(animal, selectedDocumentIds(), Boolean(editSource)); }
+      try { CitesDocumentLinks.saveAnimal(animal, selectedDocumentIds(), Boolean(editSource), copyCount); }
       catch (error) { alert(error.message); updateDocumentCandidates(); showStep(1); return; }
-      location.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
+      location.href = copyCount > 1 ? "animals.html" : `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
     });
   </script>
 </body>

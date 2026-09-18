@@ -24,10 +24,18 @@
       return [{ document:doc, slots, linked }];
     });
   }
-  function saveAnimal(animal, documentIds, editing = false) {
+  function saveAnimal(animal, documentIds, editing = false, count = 1) {
+    if (!Number.isInteger(count) || count < 1 || count > 100 || (editing && count !== 1)) throw new Error("등록 마릿수는 1~100 사이의 정수로 입력해 주세요.");
     const oldAnimals = localStorage.getItem('cites-animals');
     const oldDocuments = localStorage.getItem('cites-documents');
     const animals = JSON.parse(oldAnimals || '[]');
+    const names = new Set(animals.map(item => item.name));
+    let number = 1;
+    const batch = Array.from({length:count}, (_, index) => {
+      let name = animal.name;
+      if (count > 1) { while (names.has(animal.name + ' ' + number)) number++; name = animal.name + ' ' + number++; names.add(name); }
+      return {...animal, id:index === 0 ? animal.id : crypto.randomUUID(), name};
+    });
     const previous = animals.find(item => item.id === animal.id);
     if (editing && !previous) throw new Error('수정할 동물이 삭제되었습니다. 목록을 새로고침해 주세요.');
     if (editing && previous.statusDocumentId && animal.status !== previous.status) throw new Error('양도·폐사 서류로 처리된 상태입니다. 해당 서류를 삭제해 처리를 되돌린 뒤 변경해 주세요.');
@@ -38,8 +46,8 @@
     selected.forEach(id => {
       const match = available.find(item => item.document.id === id);
       const retained = editing && match && (match.document.animalIds || []).includes(animal.id);
-      if (!match || (!retained && match.slots < 1)) throw new Error('선택한 서류의 학명이나 수량이 변경되었습니다. 서류 후보를 다시 확인해 주세요.');
-      match.document.animalIds = [...new Set([...(match.document.animalIds || []), animal.id])];
+      if (!match || (!retained && match.slots < count)) throw new Error('선택한 서류의 학명이 맞지 않거나 ' + count + '마리를 연결할 수량이 부족합니다. 등록 마릿수와 서류를 확인해 주세요.');
+      match.document.animalIds = [...new Set([...(match.document.animalIds || []), ...batch.map(item => item.id)])];
     });
     if (editing) documents.forEach(doc => { if (!isEvent(doc) && !selected.includes(doc.id)) doc.animalIds = (doc.animalIds || []).filter(id => id !== animal.id); });
     let documentsWritten = false;
@@ -50,7 +58,7 @@
         localStorage.setItem('cites-documents', JSON.stringify(documents));
         documentsWritten = true;
       }
-      const nextAnimals = editing ? animals.map(item => item.id === animal.id ? animal : item) : [animal, ...animals];
+      const nextAnimals = editing ? animals.map(item => item.id === animal.id ? animal : item) : [...batch, ...animals];
       const packed = window.CitesPhotos ? CitesPhotos.compact(nextAnimals) : {animals:nextAnimals};
       if (packed.photos) { localStorage.setItem('cites-shared-photos', JSON.stringify(packed.photos)); sharedWritten = true; }
       localStorage.setItem('cites-animals', JSON.stringify(packed.animals));
