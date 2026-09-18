@@ -24,6 +24,14 @@
     .document-footer { gap:10px; } .document-actions { flex-wrap:wrap; }
     @media(max-width:680px) { .document { padding:14px; } .head { gap:6px; } .document-footer { gap:8px; } }
     .document-filters { display:flex;flex-wrap:wrap;gap:8px; } .document-filters [aria-pressed="true"] { background:var(--green);color:white;border-color:var(--green); }
+    #document-list { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+    #document-list .document { min-width:0; }
+    #document-list .head { flex-wrap:wrap; gap:6px; }
+    #document-list .head>div { flex:1 1 230px; }
+    #document-list .document-footer { flex-wrap:wrap; }
+    #document-list .animals { min-width:0; overflow-wrap:anywhere; }
+    #document-list .empty { grid-column:1 / -1; }
+    @media(max-width:680px) { #document-list { grid-template-columns:minmax(0,1fr); } }
   </style>
 </head>
 <body>
