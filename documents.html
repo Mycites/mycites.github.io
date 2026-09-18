@@ -42,6 +42,9 @@
     #animal-hover-preview img { display:block;width:100%;height:150px;object-fit:contain;border-radius:8px; }
     #animal-hover-preview span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;margin-top:5px; }
     @media(max-width:680px) { #animal-checks { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    .connection-status.needs-registration { color:#b42318;background:#fff0ee;border:1px solid #edaaa3;font-weight:800; }
+    .linked-animal-list { border-top:1px solid var(--line);padding-top:10px; }
+    .linked-animal-list a { display:inline-block;padding:5px 8px;margin:3px;border:1px solid var(--line);border-radius:7px; }
   </style>
 </head>
 <body>
@@ -93,11 +96,12 @@
       visible.forEach(document => {
         const remaining = remainingQuantity(document);
         const linkedAnimals = document.animalIds.map(animalId => animals.find(animal => animal.id === animalId)).filter(Boolean);
-        const animalLinks = linkedAnimals.length ? linkedAnimals.map(animal => `<a href="animal-detail.html?id=${encodeURIComponent(animal.id)}">${escapeHtml(animal.name)}</a>`).join('') : '연결된 개체 없음';
+        const animalLinks = linkedAnimals.length ? linkedAnimals.map(animal => `<a data-preview-animal="${escapeHtml(animal.id)}" href="animal-detail.html?id=${encodeURIComponent(animal.id)}">${escapeHtml(animal.name)}</a>`).join('') : '연결된 개체 없음';
         const linked = connectionCount(document);
         const additional = extraSlots(document);
         const complete = linked === initialQuantity(document) && initialQuantity(document) > 0;
-        const status = '<span class="connection-status">' + (CitesRecords.isEvent(document) ? (document.kind === 'death' ? '폐사 처리' : '양도 처리') : remaining === 0 ? '수량 소진' : complete ? '연결 완료' : additional > 0 ? '추가 연결 가능' : '추가 연결 없음') + '</span>';
+        const status = CitesRecords.isEvent(document) ? '<span class="connection-status">' + (document.kind === 'death' ? '폐사 처리' : '양도 처리') + '</span>' : additional > 0 ? '<span class="connection-status needs-registration">개체 등록 필요</span>' : '';
+
         const speciesText = (document.speciesEntries?.length ? document.speciesEntries : [{ species:document.species || linkedAnimals[0]?.species }]).map(entry => '<p class="document-species">' + escapeHtml(entry.species) + (entry.scientificName ? ' <span>' + escapeHtml(entry.scientificName) + '</span>' : '') + '</p>').join('');
         const changes = document.quantityChanges || [];
         const death = changes.filter(change => String(change.reason || '').includes('폐사')).reduce((sum, change) => sum + Number(change.count || 0), 0);
@@ -106,7 +110,7 @@
         const amounts = CitesRecords.isEvent(document) ? [[document.kind === 'death' ? '폐사' : '양도', initialQuantity(document)]] : [['등록 수량', remaining], ...(death ? [['폐사', death]] : []), ...(transfer ? [['양도', transfer]] : []), ...(other ? [['기타 감소', other]] : [])];
         const history = changes.length ? '<details style="margin:12px 0"><summary>감소 내역 확인 (' + changes.length + '건)</summary><p class="helper">수동 기록과 서류 자동 처리가 같은 건인지 확인하세요. 중복된 수동 기록만 취소하면 수량이 복구됩니다.</p>' + changes.map((change, index) => '<div style="margin:12px 0;overflow-wrap:anywhere"><b>' + escapeHtml(change.reason || '기타') + ' ' + Number(change.count || 0) + '마리</b> · ' + (change.eventDocumentId ? '서류 자동 처리' : '수동 기록') + ' · ' + displayDate(change.createdAt) + (change.species ? ' · ' + escapeHtml(change.species) : '') + (change.memo ? '<p class="helper">' + escapeHtml(change.memo) + '</p>' : '') + (change.eventDocumentId ? '<p class="helper">' + escapeHtml(documents.find(doc => doc.id === change.eventDocumentId)?.title || '연결 서류') + ' — 해당 서류 삭제 시 복구됩니다.</p>' : '<button type="button" class="cancel" data-cancel-change="' + escapeHtml(document.id) + '" data-index="' + index + '" data-snapshot="' + escapeHtml(encodeURIComponent(JSON.stringify(change))) + '">수동 기록 취소</button>') + '</div>').join('') + '</details>' : '';
         const metrics = amounts.map(([label, count]) => '<div><dt>' + label + '</dt><dd>' + count + '<small>마리</small></dd></div>').join('');
-        list.insertAdjacentHTML('beforeend', `<article class="document"><div class="head"><div><h2>${escapeHtml(document.title)}</h2><p class="date">등록 ${displayDate(document.createdAt)}${document.reference ? ' · 관리번호 ' + escapeHtml(document.reference) : ''}</p></div>${status}</div><div class="document-species-list">${speciesText}</div><dl class="connection-metrics">${metrics}</dl>${history}<div class="document-footer"><div class="animals"><span>연결 동물</span><div>${animalLinks}</div></div><div class="document-actions">${document.fileData ? `<button class="cancel" type="button" data-view-document="${escapeHtml(document.id)}">서류 보기</button>` : ''}<button class="cancel" type="button" data-edit-document="${escapeHtml(document.id)}">수정</button><button class="cancel" type="button" data-delete-document="${escapeHtml(document.id)}">삭제</button></div></div></article>`);
+        list.insertAdjacentHTML('beforeend', `<article class="document"><div class="head"><div><h2>${escapeHtml(document.title)}</h2><p class="date">등록 ${displayDate(document.createdAt)}${document.reference ? ' · 관리번호 ' + escapeHtml(document.reference) : ''}</p></div>${status}</div><div class="document-species-list">${speciesText}</div><dl class="connection-metrics">${metrics}</dl>${history}<div class="document-footer"><div class="document-actions"><button class="cancel" type="button" data-toggle-animals aria-expanded="false">연결 동물 (${linkedAnimals.length})</button>${document.fileData ? `<button class="cancel" type="button" data-view-document="${escapeHtml(document.id)}">서류 보기</button>` : ''}<button class="cancel" type="button" data-edit-document="${escapeHtml(document.id)}">수정</button><button class="cancel" type="button" data-delete-document="${escapeHtml(document.id)}">삭제</button></div></div><div class="animals linked-animal-list" hidden>${animalLinks}</div></article>`);
       });
     }
     }
@@ -125,7 +129,7 @@
     const photoPreview = document.createElement('div'); photoPreview.id = 'animal-hover-preview'; photoPreview.hidden = true; photoPreview.setAttribute('role', 'tooltip'); document.body.append(photoPreview);
     const hidePhotoPreview = () => { photoPreview.hidden = true; photoPreview.replaceChildren(); };
     function showAnimalPhoto(label) {
-      const animal = animals.find(item => item.id === label?.querySelector('input')?.value);
+      const animal = animals.find(item => item.id === (label?.dataset.previewAnimal || label?.querySelector('input')?.value));
       const photo = animal?.photo || animal?.photos?.find(item => item.type === '개체 사진' && item.data)?.data;
       hidePhotoPreview(); if (!photo || !/^data:image\/(png|jpeg|webp);base64,/.test(photo)) return;
       const img = document.createElement('img'); img.alt = animal.name + ' 개체 사진'; img.src = photo; img.onerror = hidePhotoPreview;
@@ -138,6 +142,10 @@
     checks.addEventListener('mouseout', event => { const label = event.target.closest('.animal-check'); if (label && !label.contains(event.relatedTarget)) hidePhotoPreview(); });
     checks.addEventListener('focusin', event => showAnimalPhoto(event.target.closest('.animal-check')));
     checks.addEventListener('focusout', hidePhotoPreview);
+    list.addEventListener('mouseover', event => { const link = event.target.closest('[data-preview-animal]'); if (link) showAnimalPhoto(link); });
+    list.addEventListener('mouseout', event => { if (event.target.closest('[data-preview-animal]')) hidePhotoPreview(); });
+    list.addEventListener('focusin', event => { const link = event.target.closest('[data-preview-animal]'); if (link) showAnimalPhoto(link); });
+    list.addEventListener('focusout', hidePhotoPreview);
     window.addEventListener('scroll', hidePhotoPreview, true); window.addEventListener('resize', hidePhotoPreview);
     document.addEventListener('keydown', event => { if (event.key === 'Escape') hidePhotoPreview(); });
     const normalize = value => String(value || '').trim().toLowerCase().replaceAll(' ', '');
@@ -187,6 +195,11 @@
     });
     document.querySelector('#document-cancel').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); entries.innerHTML = ''; form.classList.remove('open'); });
     list.addEventListener('click', event => {
+      const animalToggle = event.target.closest('[data-toggle-animals]');
+      if (animalToggle) {
+        const panel = animalToggle.closest('.document').querySelector('.linked-animal-list'); panel.hidden = !panel.hidden;
+        animalToggle.setAttribute('aria-expanded', String(!panel.hidden)); hidePhotoPreview(); return;
+      }
       const view = event.target.closest('[data-view-document]');
       if (view) {
         const doc = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === view.dataset.viewDocument);
