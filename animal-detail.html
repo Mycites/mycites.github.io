@@ -20,7 +20,7 @@
 </head>
 <body class="page-detail">
   <main id="app"></main>
-  <script src="js/document-links.js"></script><script src="js/animal-photos.js"></script>
+  <script src="js/document-links.js"></script><script src="js/animal-photos.js"></script><script src="js/breeding-parents.js"></script>
   <script src="js/record-store.js"></script>
   <script>
     const app = document.querySelector('#app');
@@ -63,7 +63,7 @@
       calendarTokenClient.requestAccessToken({ prompt:'' });
     };
     window.breedingCalendarReady = () => { calendarTokenClient = google.accounts.oauth2.initTokenClient({ client_id:CALENDAR_CLIENT_ID, scope:'https://www.googleapis.com/auth/calendar.events', callback:'' }); };
-    function recordsForAnimal() { return JSON.parse(localStorage.getItem('cites-breeding-records') || '[]').filter(record => record.animalId === id); }
+    function recordsForAnimal() { return JSON.parse(localStorage.getItem('cites-breeding-records') || '[]').filter(record => [record.animalId, record.motherId, record.fatherId].includes(id)); }
     function documentsForAnimal() { return JSON.parse(localStorage.getItem('cites-documents') || '[]').filter(document => document.animalIds.includes(id)); }
     function initialQuantity(document) { return Number.isInteger(document.initialCount) ? document.initialCount : document.animalIds.length; }
     function usedQuantity(document) { return (document.quantityChanges || []).reduce((total, change) => total + Number(change.count || 0), 0); }
@@ -83,6 +83,8 @@
     }
     function setupRecordForm() {
       const form = document.querySelector('#breeding-form');
+      const parentBox = document.createElement('div'); parentBox.className = 'field full'; form.prepend(parentBox);
+      const parents = CitesParents.mount(parentBox, animals, animal.sex === '수컷' ? '' : id, new URLSearchParams(location.search).get('father') || (animal.sex === '수컷' ? id : ''));
       const toggle = document.querySelector('#record-toggle');
       const cancel = document.querySelector('#record-cancel');
       toggle.addEventListener('click', () => form.classList.add('open'));
@@ -100,7 +102,7 @@
         if (type === '부화' && (!Number.isInteger(Number(hatchlings)) || Number(hatchlings) < 0)) { alert('부화 수를 0 이상 입력해 주세요.'); return; }
         if (photo && photo.size > 1024 * 1024) { alert('증식 사진은 1MB 이하로 선택해 주세요.'); return; }
         const save = photoData => {
-          const record = { id:String(Date.now()), animalId:id, type, laidAt:type === '산란' ? recordDate : '', hatchedAt:type === '부화' ? recordDate : '', temperature:form.querySelector('#temperature').value.trim(), eggs, hatchlings, memo:form.querySelector('#breeding-memo').value.trim(), photoName:photo?.name || '', photo:photoData || '', createdAt:new Date().toISOString() };
+          const record = { id:String(Date.now()), animalId:parents.values().motherId, ...parents.values(), type, laidAt:type === '산란' ? recordDate : '', hatchedAt:type === '부화' ? recordDate : '', temperature:form.querySelector('#temperature').value.trim(), eggs, hatchlings, memo:form.querySelector('#breeding-memo').value.trim(), photoName:photo?.name || '', photo:photoData || '', createdAt:new Date().toISOString() };
           const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]'); records.unshift(record);
           try { localStorage.setItem('cites-breeding-records', JSON.stringify(records)); } catch { alert('브라우저 저장 공간이 부족합니다. 더 작은 사진을 사용해 주세요.'); return; }
           form.reset(); form.classList.remove('open'); renderRecords();
