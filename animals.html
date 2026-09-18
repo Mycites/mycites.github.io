@@ -37,7 +37,15 @@
         const title = document.createElement('h2'); title.textContent = animal.name;
         const species = document.createElement('p'); species.textContent = `${animal.species} · ${animal.category}`;
         const status = document.createElement('span'); status.className = 'status'; status.textContent = animal.status;
-        info.append(title, species, status); link.append(picture, info);
+        const heading = document.createElement('div'); heading.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0';
+        title.style.cssText='min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'; title.title=animal.name;
+        heading.append(title);
+        if (animal.status && animal.status !== '보유 중') {
+          status.style.flexShrink='0';
+          if (animal.status === '폐사') { status.style.color='#b42318';status.style.background='#fff0ee'; }
+          heading.append(status);
+        }
+        info.append(heading, species); link.append(picture, info);
         const card = document.createElement('article'); card.style.cssText='min-width:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:white';
         link.style.border='0';
         const actions=document.createElement('div'); actions.style.cssText='display:flex;justify-content:flex-end;gap:8px;padding:0 16px 14px';
