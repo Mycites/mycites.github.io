@@ -110,7 +110,7 @@
     const change = doc?.quantityChanges?.[index];
     if (!change || JSON.stringify(change) !== expected) throw new Error('감소 내역이 변경되었습니다. 새로고침 후 다시 확인해 주세요.');
     if (change.eventDocumentId) throw new Error('자동 처리 내역은 연결된 양도·폐사 서류에서 되돌려 주세요.');
-    doc.cancelledQuantityChanges = [...(doc.cancelledQuantityChanges || []), {...change, cancelledAt:new Date().toISOString()}];
+    delete doc.cancelledQuantityChanges;
     doc.quantityChanges.splice(index, 1);
     write({'cites-documents':documents});
   }
@@ -121,5 +121,13 @@
       'cites-animals':read('cites-animals').filter(animal => animal.id !== id)
     });
   }
+  // Cancelled manual entries are no longer retained.
+  try {
+    const documents = read('cites-documents');
+    if (documents.some(doc => Object.hasOwn(doc, 'cancelledQuantityChanges'))) {
+      documents.forEach(doc => { delete doc.cancelledQuantityChanges; });
+      write({'cites-documents':documents});
+    }
+  } catch { console.warn('취소 내역 정리를 저장하지 못했습니다. 다음에 다시 시도합니다.'); }
   window.CitesRecords = { saveDocument, deleteDocument, cancelManualChange, deleteAnimal, isEvent, eventSpecies };
 })();
