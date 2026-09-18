@@ -19,6 +19,7 @@
     <div class="top"><div><a href="index.html">← 대시보드</a><h1>동물 관리</h1><p class="sub">등록한 동물을 사진과 이름으로 빠르게 찾아보세요.</p></div><a class="add" href="animal-register.html">+ 새 동물 등록</a></div>
     <section id="animal-list" class="grid" aria-label="등록한 동물 목록"></section>
   </main>
+  <script src="js/record-store.js"></script>
   <script>
     const list = document.querySelector('#animal-list');
     const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
@@ -36,7 +37,17 @@
         const title = document.createElement('h2'); title.textContent = animal.name;
         const species = document.createElement('p'); species.textContent = `${animal.species} · ${animal.category}`;
         const status = document.createElement('span'); status.className = 'status'; status.textContent = animal.status;
-        info.append(title, species, status); link.append(picture, info); list.append(link);
+        info.append(title, species, status); link.append(picture, info);
+        const card = document.createElement('article'); card.style.cssText='min-width:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:white';
+        link.style.border='0';
+        const actions=document.createElement('div'); actions.style.cssText='display:flex;justify-content:flex-end;gap:8px;padding:0 16px 14px';
+        const edit=document.createElement('a');edit.href='animal-register.html?edit='+encodeURIComponent(animal.id);edit.textContent='수정';
+        const remove=document.createElement('button');remove.type='button';remove.textContent='삭제';remove.style.cssText='padding:5px 10px;border:1px solid #dfb2aa;border-radius:7px;background:white;color:#a52d21;cursor:pointer';
+        remove.addEventListener('click',()=>{
+          if(!confirm(animal.name+' 개체와 이 개체의 증식 기록을 삭제할까요? 서류 연결은 해제되며, 서류 원본과 공유 사육환경 사진은 유지됩니다. 삭제는 되돌릴 수 없습니다.'))return;
+          try{CitesRecords.deleteAnimal(animal.id);location.reload();}catch(error){alert(error.message);}
+        });
+        actions.append(edit,remove);card.append(link,actions);list.append(card);
       });
     }
   </script>
