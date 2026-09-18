@@ -32,6 +32,16 @@
     #document-list .animals { min-width:0; overflow-wrap:anywhere; }
     #document-list .empty { grid-column:1 / -1; }
     @media(max-width:680px) { #document-list { grid-template-columns:minmax(0,1fr); } }
+    #animal-checks { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    #animal-checks .animal-check { min-width:0;height:66px;padding:8px;gap:7px; }
+    #animal-checks input { flex-shrink:0; }
+    .animal-choice-text { min-width:0;display:block; }
+    .animal-choice-text strong,.animal-choice-text small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+    .animal-choice-text small { margin-top:3px;font-weight:400;color:var(--muted); }
+    #animal-hover-preview { position:fixed;z-index:1000;pointer-events:none;width:190px;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--cream);box-shadow:0 6px 24px #0003; }
+    #animal-hover-preview img { display:block;width:100%;height:150px;object-fit:contain;border-radius:8px; }
+    #animal-hover-preview span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;margin-top:5px; }
+    @media(max-width:680px) { #animal-checks { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   </style>
 </head>
 <body>
@@ -112,11 +122,29 @@
     let editingSnapshot = null;
     const checks = document.querySelector('#animal-checks');
     const entries = document.querySelector('#species-entries');
+    const photoPreview = document.createElement('div'); photoPreview.id = 'animal-hover-preview'; photoPreview.hidden = true; photoPreview.setAttribute('role', 'tooltip'); document.body.append(photoPreview);
+    const hidePhotoPreview = () => { photoPreview.hidden = true; photoPreview.replaceChildren(); };
+    function showAnimalPhoto(label) {
+      const animal = animals.find(item => item.id === label?.querySelector('input')?.value);
+      const photo = animal?.photo || animal?.photos?.find(item => item.type === '개체 사진' && item.data)?.data;
+      hidePhotoPreview(); if (!photo || !/^data:image\/(png|jpeg|webp);base64,/.test(photo)) return;
+      const img = document.createElement('img'); img.alt = animal.name + ' 개체 사진'; img.src = photo; img.onerror = hidePhotoPreview;
+      const name = document.createElement('span'); name.textContent = animal.name; photoPreview.append(img, name); photoPreview.hidden = false;
+      const rect = label.getBoundingClientRect();
+      photoPreview.style.left = Math.max(8, Math.min(rect.left, innerWidth - 210)) + 'px';
+      photoPreview.style.top = Math.max(8, rect.bottom + 210 < innerHeight ? rect.bottom + 6 : rect.top - 210) + 'px';
+    }
+    checks.addEventListener('mouseover', event => { const label = event.target.closest('.animal-check'); if (label && !label.contains(event.relatedTarget)) showAnimalPhoto(label); });
+    checks.addEventListener('mouseout', event => { const label = event.target.closest('.animal-check'); if (label && !label.contains(event.relatedTarget)) hidePhotoPreview(); });
+    checks.addEventListener('focusin', event => showAnimalPhoto(event.target.closest('.animal-check')));
+    checks.addEventListener('focusout', hidePhotoPreview);
+    window.addEventListener('scroll', hidePhotoPreview, true); window.addEventListener('resize', hidePhotoPreview);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') hidePhotoPreview(); });
     const normalize = value => String(value || '').trim().toLowerCase().replaceAll(' ', '');
     const speciesEntries = () => [...entries.querySelectorAll('.species-entry')].map(row => ({ species:row.querySelector('.species-name').value.trim(), scientificName:row.querySelector('.scientific-name').value.trim().replace(/\s+/g, ' '), count:Number(row.querySelector('.species-count').value) }));
     const addSpeciesEntry = (values = {}) => { const row = document.createElement('div'); row.className = 'species-entry'; row.innerHTML = '<label>한글 종명<input class="species-name" aria-label="대상 종명" placeholder="예: 다이아몬드백테라핀" required></label><label>학명 (선택)<input class="scientific-name" aria-label="학명 (선택)" placeholder="예: Malaclemys terrapin"></label><label>수량<input aria-label="관리 수량" class="species-count" type="number" min="1" step="1" value="1"></label><button class="remove-species" type="button">삭제</button>'; entries.append(row); row.querySelector('.species-name').value = values.species || ''; row.querySelector('.scientific-name').value = values.scientificName || ''; row.querySelector('.species-count').value = values.count ?? 1; row.querySelector('.species-count').addEventListener('input', updateSelection); row.querySelector('.species-name').addEventListener('input', updateSelection); row.querySelector('.remove-species').addEventListener('click', () => { if (entries.children.length === 1) return; row.remove(); updateSelection(); }); };
     const updateSelection = () => { const required = speciesEntries().reduce((total, entry) => total + (Number.isInteger(entry.count) ? entry.count : 0), 0); const current = checks.querySelectorAll('input:checked').length; document.querySelector('#selection-status').textContent = document.querySelector("#document-kind").value !== "acquisition" ? `처리 대상 ${current}마리 · 종과 수량은 자동으로 기록됩니다.` : `선택 ${current}마리 / 종별 서류 수량 합계 ${required}마리`; };
-    const renderAnimalChecks = () => { checks.innerHTML = animals.length ? animals.map(animal => `<label class="animal-check"><input type="checkbox" name="document-animal" value="${escapeHtml(animal.id)}">${escapeHtml(animal.name)} · ${escapeHtml(animal.species)}</label>`).join('') : '<p class="helper">먼저 동물 관리에서 개체를 등록해 주세요.</p>'; checks.querySelectorAll('input').forEach(input => input.addEventListener('change', updateSelection)); };
+    const renderAnimalChecks = () => { checks.innerHTML = animals.length ? animals.map(animal => `<label class="animal-check"><input type="checkbox" name="document-animal" value="${escapeHtml(animal.id)}"><span class="animal-choice-text"><strong title="${escapeHtml(animal.name)}">${escapeHtml(animal.name)}</strong><small title="${escapeHtml(animal.species)}">${escapeHtml(animal.species)}</small></span></label>`).join('') : '<p class="helper">먼저 동물 관리에서 개체를 등록해 주세요.</p>'; checks.querySelectorAll('input').forEach(input => input.addEventListener('change', updateSelection)); };
     document.querySelector('#document-toggle').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); document.querySelector('#document-kind').disabled = false; entries.replaceChildren(); form.querySelector('button[type=submit]').textContent = '서류 저장'; form.classList.add('open'); renderAnimalChecks(); addSpeciesEntry(); updateKind(false); updateSelection(); });
     function updateKind(rebuild = true) {
       const kind = document.querySelector('#document-kind').value;
