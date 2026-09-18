@@ -78,16 +78,32 @@
       target.innerHTML = records.map(record => {
         const tags = [record.laidAt && `산란 ${displayDate(record.laidAt)}`, record.hatchedAt && `부화 ${displayDate(record.hatchedAt)}`, record.temperature && `부화 온도 ${escapeHtml(record.temperature)}℃`, record.eggs && `알 수 ${escapeHtml(record.eggs)}`, record.hatchlings && `부화 수 ${escapeHtml(record.hatchlings)}`].filter(Boolean).map(tag => `<span class="tag">${tag}</span>`).join('');
         const photo = record.photo ? `<img class="record-photo" src="${escapeHtml(record.photo)}" alt="${escapeHtml(record.type || '증식')} 기록 사진">` : (record.drivePhotoUrl ? `<a class="document-link" href="${escapeHtml(record.drivePhotoUrl)}" target="_blank" rel="noreferrer">Drive에 백업한 사진 보기</a>` : '');
-        return `<article class="record"><div class="record-title"><b>${record.type === '산란' ? '🥚 산란 기록' : record.type === '부화' ? '🐢 부화 기록' : '🥚 증식 기록'}</b><span class="record-date">${displayDate((record.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${tags}</div>${record.memo ? `<p class="record-note">${escapeHtml(record.memo)}</p>` : ''}${photo}</article>`;
+        return `<article class="record"><div class="record-title"><b>${record.type === '산란' ? '🥚 산란 기록' : record.type === '부화' ? '🐢 부화 기록' : '🥚 증식 기록'}</b><span class="record-date">${displayDate((record.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${tags}</div>${record.memo ? `<p class="record-note">${escapeHtml(record.memo)}</p>` : ''}${photo}<p><a href="animal-detail.html?id=${encodeURIComponent(id)}&editRecord=${encodeURIComponent(record.id)}">수정</a> <button type="button" data-delete-record="${escapeHtml(record.id)}">삭제</button></p></article>`;
       }).join('');
     }
     function setupRecordForm() {
       const form = document.querySelector('#breeding-form');
       const parentBox = document.createElement('div'); parentBox.className = 'field full'; form.prepend(parentBox);
       const parents = CitesParents.mount(parentBox, animals, animal.sex === '수컷' ? '' : id, new URLSearchParams(location.search).get('father') || (animal.sex === '수컷' ? id : ''));
+      const editRecordId = new URLSearchParams(location.search).get('editRecord');
+      let editingRecord = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]').find(item => item.id === editRecordId);
+      if (editingRecord) {
+        form.classList.add('open');
+        for (const [field, value] of Object.entries({'record-type':editingRecord.type, 'record-date':editingRecord.hatchedAt || editingRecord.laidAt, eggs:editingRecord.eggs, hatchlings:editingRecord.hatchlings, temperature:editingRecord.temperature, 'breeding-memo':editingRecord.memo})) form.querySelector('#'+field).value = value || '';
+        for (const [key, value] of [['mother', editingRecord.motherId || editingRecord.animalId], ['father', editingRecord.fatherId]]) {
+          const select = form.querySelector('#parent-'+key);
+          if (value && ![...select.options].some(option => option.value === value)) select.add(new Option(animals.find(item => item.id === value)?.name || '기존 연결 개체',value));
+          select.value = value || ''; select.dispatchEvent(new Event('change'));
+        }
+        form.querySelector('#calendar-event').checked = false; form.querySelector('#calendar-event').disabled = true;
+        form.querySelector('button[type=submit]').textContent = '수정 저장';
+        const note = document.createElement('p'); note.className='helper field full'; note.textContent='새 사진을 선택하지 않으면 기존 사진을 유지합니다. Google Calendar 일정은 별도로 수정해 주세요.'; form.prepend(note);
+        if (editingRecord.photo) note.append(CitesPhotos.image(editingRecord.photo, '기존 증식 사진'));
+        form.scrollIntoView();
+      }
       const toggle = document.querySelector('#record-toggle');
       const cancel = document.querySelector('#record-cancel');
-      toggle.addEventListener('click', () => form.classList.add('open'));
+      toggle.addEventListener('click', () => { if (editingRecord) { location.href='animal-detail.html?id='+encodeURIComponent(id)+'&record=new'; return; } form.classList.add('open'); });
       cancel.addEventListener('click', () => { form.reset(); form.classList.remove('open'); });
       form.addEventListener('submit', event => {
         event.preventDefault();
@@ -102,9 +118,12 @@
         if (type === '부화' && (!Number.isInteger(Number(hatchlings)) || Number(hatchlings) < 0)) { alert('부화 수를 0 이상 입력해 주세요.'); return; }
         if (photo && photo.size > 1024 * 1024) { alert('증식 사진은 1MB 이하로 선택해 주세요.'); return; }
         const save = photoData => {
-          const record = { id:String(Date.now()), animalId:parents.values().motherId, ...parents.values(), type, laidAt:type === '산란' ? recordDate : '', hatchedAt:type === '부화' ? recordDate : '', temperature:form.querySelector('#temperature').value.trim(), eggs, hatchlings, memo:form.querySelector('#breeding-memo').value.trim(), photoName:photo?.name || '', photo:photoData || '', createdAt:new Date().toISOString() };
-          const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]'); records.unshift(record);
+          const record = { ...editingRecord, id:editingRecord?.id || crypto.randomUUID(), animalId:parents.values().motherId, ...parents.values(), type, laidAt:type === '산란' ? recordDate : '', hatchedAt:type === '부화' ? recordDate : '', temperature:form.querySelector('#temperature').value.trim(), eggs, hatchlings, memo:form.querySelector('#breeding-memo').value.trim(), photoName:photo?.name || editingRecord?.photoName || '', photo:photoData || editingRecord?.photo || '', createdAt:editingRecord?.createdAt || new Date().toISOString(), updatedAt:new Date().toISOString() };
+          const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
+          if (editingRecord) { const index=records.findIndex(item=>item.id===editingRecord.id); if(index<0){alert('기록이 삭제되었습니다. 새로고침해 주세요.');return;} records[index]=record; } else records.unshift(record);
+          if (photo) { record.drivePhotoId='';record.drivePhotoUrl=''; }
           try { localStorage.setItem('cites-breeding-records', JSON.stringify(records)); } catch { alert('브라우저 저장 공간이 부족합니다. 더 작은 사진을 사용해 주세요.'); return; }
+          if (editingRecord) { location.href='animal-detail.html?id='+encodeURIComponent(id); return; }
           form.reset(); form.classList.remove('open'); renderRecords();
           if (addToCalendar) addBreedingCalendarEvent(record);
         };
@@ -181,5 +200,5 @@
     }
   </script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="breedingCalendarReady()"></script>
-</body>
+<script src="js/breeding-actions.js"></script></body>
 </html>
