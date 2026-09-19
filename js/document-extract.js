@@ -131,7 +131,7 @@
     const lines = text.split(/\r?\n/).map(line => line.trim().replace(/\s+/g, ' ')).filter(Boolean);
     const titles = [], references = [];
     const titleLabel = /^(?:서\s*류\s*(?:이\s*름|명)|문\s*서\s*명|제\s*목|document\s*(?:title|name))\s*[:：]?\s*/i;
-    const referenceLabel = /(?:관\s*리|허\s*가|발\s*급|승\s*인|신\s*고|증\s*명\s*서|증\s*서|접\s*수)\s*번\s*호|(?:permit|certificate|reference|document)\s*(?:no\.?|number)|허\s*가\s*서\s*번\s*호/gi;
+    const referenceLabel = /(?:관\s*리|허\s*가|발\s*급|승\s*인|신\s*고|증\s*명\s*서|증\s*서)\s*번\s*호|(?:permit|certificate|reference|document)\s*(?:no\.?|number)|허\s*가\s*서\s*번\s*호/gi;
     const add = (list, value) => { if (value && !list.includes(value)) list.push(value); };
     lines.forEach((line, index) => {
       if (titleLabel.test(line)) {
