@@ -12,6 +12,8 @@
     section { margin-top:22px; padding:24px; border:1px solid var(--line); border-radius:16px; background:#fff; } h2 { margin:0 0 14px; font-size:1.15rem; } .section-head { display:flex; justify-content:space-between; align-items:center; gap:16px; } dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; margin:0; } .row { padding:13px 0; border-top:1px solid #edf1ee; } dt { color:var(--muted); font-size:.83rem; } dd { margin:4px 0 0; font-weight:700; } .memo { color:#49645a; white-space:pre-wrap; } .empty { color:var(--muted); }
     .breeding-form { display:none; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; margin-top:18px; padding:20px; border-radius:13px; background:var(--mint); } .breeding-form.open { display:grid; } .field.full { grid-column:1 / -1; } label { display:block; margin-bottom:6px; font-size:.85rem; font-weight:750; } input, textarea, select { width:100%; padding:11px; border:1px solid #bcd6c9; border-radius:9px; color:var(--ink); background:#fff; font:inherit; } textarea { min-height:82px; resize:vertical; } input:focus, textarea:focus, select:focus { outline:3px solid #c9eadb; border-color:var(--green); } .save-row { display:flex; justify-content:flex-end; gap:10px; } .cancel { padding:10px 13px; border:1px solid #bcd6c9; border-radius:9px; color:#45665a; background:#fff; font:inherit; font-weight:750; cursor:pointer; }
     .records { display:grid; gap:10px; margin-top:17px; } .record { padding:15px; border-radius:12px; background:#f7faf8; } .record-title { display:flex; align-items:center; justify-content:space-between; gap:14px; } .record-title b { font-size:.95rem; } .record-date { color:var(--muted); font-size:.8rem; } .record-data { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; } .tag { padding:5px 8px; border-radius:999px; color:#25694f; background:#e2f2e9; font-size:.76rem; font-weight:700; } .record-note { margin:10px 0 0; color:#49645a; font-size:.9rem; white-space:pre-wrap; } .record-photo { display:block; width:min(230px,100%); max-height:180px; margin-top:12px; border-radius:10px; object-fit:cover; }
+    .hatch-logs { margin-top:12px; padding-top:10px; border-top:1px dashed var(--line); display:grid; gap:10px; } .hatch-log { display:flex; justify-content:space-between; align-items:start; gap:12px; flex-wrap:wrap; } .hatch-log .record-photo { width:110px; height:90px; margin-top:4px; }
+    dialog.hatch-dialog { width:min(440px,94vw); padding:20px; border:1px solid #bcd6c9; border-radius:14px; background:#fff; } dialog.hatch-dialog::backdrop { background:#0004; } dialog.hatch-dialog form { display:grid; gap:12px; } dialog.hatch-dialog h3 { margin:0; }
     .document-form, .quantity-form { display:none; gap:15px; margin-top:18px; padding:20px; border-radius:13px; background:var(--mint); } .document-form.open, .quantity-form.open { display:grid; } .helper { margin:0; color:var(--muted); font-size:.84rem; } .animal-checks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .animal-check { display:flex; align-items:center; gap:8px; padding:10px; border:1px solid #c8dfd1; border-radius:9px; background:#fff; font-size:.88rem; } .animal-check input { width:auto; margin:0; } .document-file { margin-top:11px; font-size:.86rem; } .document-file input { padding:8px; } .document-link { display:inline-block; margin-top:10px; font-size:.86rem; } .quantity-button { margin-top:10px; } .unavailable { color:#8b4433; background:#fbe8e2; }
     @media (max-width:680px) { main { padding:24px 16px 48px; } .top { align-items:start; flex-direction:column; } .hero { grid-template-columns:1fr; } .picture { min-height:180px; } dl, .breeding-form { grid-template-columns:1fr; } .field.full { grid-column:auto; } .section-head { align-items:start; flex-direction:column; } .section-head .button { width:100%; min-height:46px; } .save-row { flex-direction:column-reverse; } .save-row button { width:100%; min-height:46px; } .animal-checks { grid-template-columns:1fr; } }
     .document-candidate { display:flex; align-items:start; gap:10px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; overflow-wrap:anywhere; } .document-candidate input { width:auto; margin-top:5px; } .document-candidate small { display:block; color:var(--muted); font-weight:400; }
@@ -40,7 +42,7 @@
       if (!events.some(event => event.id === eventId)) events.push({ id:eventId, kind:record.type, title:`${animal.name} ${record.type} 기록`, date:record.laidAt || record.hatchedAt, note:record.memo || '' });
       CitesStorage.setItem('cites-calendar-events', JSON.stringify(events));
     };
-    const addBreedingCalendarEvent = async record => {
+    const addBreedingCalendarEvent = async (record, persist) => {
       const eventDate = record.laidAt || record.hatchedAt;
       const create = async () => {
         try {
@@ -50,7 +52,7 @@
           if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error?.message || 'Google Calendar 요청에 실패했습니다.');
           const event = await response.json(); record.calendarEventId = event.id;
           const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');
-          const saved = records.find(item => item.id === record.id); if (saved) saved.calendarEventId = event.id;
+          if (persist) persist(records, event.id); else { const saved = records.find(item => item.id === record.id); if (saved) saved.calendarEventId = event.id; }
           CitesStorage.setItem('cites-breeding-records', JSON.stringify(records)); saveCalendarListItem(record, event.id);
           calendarStatus('산란·부화일을 Google Calendar에도 추가했습니다.');
         } catch (error) { calendarStatus(`기록은 저장됐지만 Calendar 추가는 하지 못했습니다: ${error.message}`); }
@@ -72,15 +74,55 @@
     function speciesEntries(document) { return document.speciesEntries?.length ? document.speciesEntries : [{ species:document.species || animal.species, count:initialQuantity(document) }]; }
     function remainingSpeciesQuantity(document, species) { return Math.max(0, Number(speciesEntries(document).find(entry => entry.species === species)?.count || 0) - (document.quantityChanges || []).filter(change => change.species === species).reduce((total, change) => total + Number(change.count || 0), 0)); }
     function updateQuantitySpecies() { const documentId = document.querySelector('#quantity-document')?.value; const selectedDocument = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').find(item => item.id === documentId); const select = document.querySelector('#quantity-species'); if (!select || !selectedDocument) return; select.innerHTML = speciesEntries(selectedDocument).map(entry => `<option value="${escapeHtml(entry.species)}">${escapeHtml(entry.species)} · 남은 ${remainingSpeciesQuantity(selectedDocument, entry.species)}마리</option>`).join(''); }
+    function hatchedTotal(record) { return (record.hatchLogs || []).reduce((sum, hatch) => sum + Number(hatch.hatchlings || 0), 0); }
     function renderRecords() {
       const records = recordsForAnimal();
       const target = document.querySelector('#records');
       if (!records.length) { target.innerHTML = '<p class="empty">아직 등록한 증식 기록이 없습니다. 산란 또는 부화가 생기면 기록을 추가해 주세요.</p>'; return; }
       target.innerHTML = records.map(record => {
-        const tags = [record.laidAt && `산란 ${displayDate(record.laidAt)}`, record.hatchedAt && `부화 ${displayDate(record.hatchedAt)}`, record.temperature && `부화 온도 ${escapeHtml(record.temperature)}℃`, record.eggs && `알 수 ${escapeHtml(record.eggs)}`, record.hatchlings && `부화 수 ${escapeHtml(record.hatchlings)}`].filter(Boolean).map(tag => `<span class="tag">${tag}</span>`).join('');
+        const hatchLogs = record.type === '산란' ? (record.hatchLogs || []) : [];
+        const tags = [record.laidAt && `산란 ${displayDate(record.laidAt)}`, record.hatchedAt && `부화 ${displayDate(record.hatchedAt)}`, record.temperature && `부화 온도 ${escapeHtml(record.temperature)}℃`, record.eggs && `알 수 ${escapeHtml(record.eggs)}`, record.hatchlings && `부화 수 ${escapeHtml(record.hatchlings)}`, hatchLogs.length ? `누적 부화 ${hatchedTotal(record)}마리` : ''].filter(Boolean).map(tag => `<span class="tag">${tag}</span>`).join('');
         const photo = record.photo ? `<img class="record-photo" src="${escapeHtml(record.photo)}" alt="${escapeHtml(record.type || '증식')} 기록 사진">` : (record.drivePhotoUrl ? `<a class="document-link" href="${escapeHtml(record.drivePhotoUrl)}" target="_blank" rel="noreferrer">Drive에 백업한 사진 보기</a>` : '');
-        return `<article class="record"><div class="record-title"><b>${record.type === '산란' ? '🥚 산란 기록' : record.type === '부화' ? '🐢 부화 기록' : '🥚 증식 기록'}</b><span class="record-date">${displayDate((record.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${tags}</div>${record.memo ? `<p class="record-note">${escapeHtml(record.memo)}</p>` : ''}${photo}<p><a href="animal-detail.html?id=${encodeURIComponent(id)}&editRecord=${encodeURIComponent(record.id)}">수정</a> <button type="button" data-delete-record="${escapeHtml(record.id)}">삭제</button></p></article>`;
+        const hatchList = hatchLogs.length ? `<div class="hatch-logs">${hatchLogs.slice().sort((a, b) => String(a.hatchedAt).localeCompare(String(b.hatchedAt))).map(hatch => `<div class="hatch-log"><div><b>${displayDate(hatch.hatchedAt)} · ${escapeHtml(hatch.hatchlings)}마리</b>${hatch.temperature ? ' · ' + escapeHtml(hatch.temperature) + '℃' : ''}${hatch.memo ? `<p class="record-note">${escapeHtml(hatch.memo)}</p>` : ''}<p><button type="button" class="cancel" data-record-id="${escapeHtml(record.id)}" data-delete-hatch="${escapeHtml(hatch.id)}">이 부화 기록 삭제</button></p></div>${hatch.photo ? `<img class="record-photo" src="${escapeHtml(hatch.photo)}" alt="부화 사진">` : ''}</div>`).join('')}</div>` : '';
+        const addHatchButton = record.type === '산란' ? `<p><button type="button" class="cancel" data-add-hatch="${escapeHtml(record.id)}">+ 부화 기록 추가</button></p>` : '';
+        return `<article class="record"><div class="record-title"><b>${record.type === '산란' ? '🥚 산란 기록' : record.type === '부화' ? '🐢 부화 기록' : '🥚 증식 기록'}</b><span class="record-date">${displayDate((record.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${tags}</div>${record.memo ? `<p class="record-note">${escapeHtml(record.memo)}</p>` : ''}${photo}${hatchList}${addHatchButton}<p><a href="animal-detail.html?id=${encodeURIComponent(id)}&editRecord=${encodeURIComponent(record.id)}">수정</a> <button type="button" data-delete-record="${escapeHtml(record.id)}">삭제</button></p></article>`;
       }).join('');
+      target.querySelectorAll('[data-add-hatch]').forEach(button => button.addEventListener('click', () => {
+        const record = records.find(item => item.id === button.dataset.addHatch);
+        if (record) openHatchDialog(record);
+      }));
+    }
+    function openHatchDialog(record) {
+      const dialog = document.createElement('dialog'); dialog.className = 'hatch-dialog';
+      dialog.innerHTML = `<form><h3>부화 기록 추가</h3><p class="helper">산란일 ${escapeHtml(displayDate(record.laidAt))} · 알 수 ${escapeHtml(record.eggs)}개 · 지금까지 부화 ${hatchedTotal(record)}마리</p><div class="field"><label for="hatch-date">부화일</label><input id="hatch-date" type="date" required></div><div class="field"><label for="hatch-count">부화 수</label><input id="hatch-count" type="number" min="1" step="1" inputmode="numeric" required></div><div class="field"><label for="hatch-temp">부화 온도 (℃) <span class="helper">(선택)</span></label><input id="hatch-temp" inputmode="decimal"></div><div class="field"><label for="hatch-photo">부화 사진 <span class="helper">(선택 · 1MB 이하)</span></label><input id="hatch-photo" type="file" accept="image/*"></div><div class="field"><label for="hatch-memo">메모 <span class="helper">(선택)</span></label><textarea id="hatch-memo"></textarea></div><label style="display:flex;align-items:center;gap:8px;font-weight:400"><input id="hatch-calendar" type="checkbox" checked style="width:auto">Google Calendar에도 추가</label><div class="save-row"><button type="button" class="cancel" id="hatch-cancel">취소</button><button type="submit" class="button">추가</button></div></form>`;
+      document.body.append(dialog);
+      dialog.querySelector('#hatch-cancel').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('close', () => dialog.remove());
+      dialog.querySelector('form').addEventListener('submit', event => {
+        event.preventDefault();
+        const hatchDate = dialog.querySelector('#hatch-date').value;
+        const count = Number(dialog.querySelector('#hatch-count').value);
+        if (!hatchDate) { alert('부화일을 입력해 주세요.'); return; }
+        if (!Number.isInteger(count) || count < 1) { alert('부화 수를 1 이상 입력해 주세요.'); return; }
+        const eggCount = Number(record.eggs || 0);
+        if (eggCount && hatchedTotal(record) + count > eggCount) { alert(`알 수(${eggCount}개)를 초과하여 부화 수를 입력할 수 없습니다. 지금까지 ${hatchedTotal(record)}마리 부화 기록됨.`); return; }
+        const photo = dialog.querySelector('#hatch-photo').files[0];
+        if (photo && photo.size > 1024 * 1024) { alert('부화 사진은 1MB 이하로 선택해 주세요.'); return; }
+        const finish = photoData => {
+          const hatch = { id:crypto.randomUUID(), hatchedAt:hatchDate, hatchlings:String(count), temperature:dialog.querySelector('#hatch-temp').value.trim(), memo:dialog.querySelector('#hatch-memo').value.trim(), photoName:photo?.name || '', photo:photoData || '', createdAt:new Date().toISOString() };
+          const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');
+          const target = records.find(item => item.id === record.id);
+          if (!target) { alert('기록이 삭제되었습니다. 새로고침해 주세요.'); return; }
+          target.hatchLogs = [...(target.hatchLogs || []), hatch]; target.updatedAt = new Date().toISOString();
+          try { CitesStorage.setItem('cites-breeding-records', JSON.stringify(records)); } catch { alert('브라우저 저장 공간이 부족합니다. 더 작은 사진을 사용해 주세요.'); return; }
+          const addToCalendar = dialog.querySelector('#hatch-calendar').checked;
+          dialog.close(); renderRecords();
+          if (addToCalendar) addBreedingCalendarEvent({ ...hatch, type:'부화' }, (freshRecords, eventId) => { const parent = freshRecords.find(item => item.id === record.id); const saved = parent?.hatchLogs?.find(item => item.id === hatch.id); if (saved) saved.calendarEventId = eventId; });
+        };
+        if (!photo) { finish(''); return; }
+        const reader = new FileReader(); reader.addEventListener('load', () => finish(reader.result)); reader.readAsDataURL(photo);
+      });
+      dialog.showModal();
     }
     function setupRecordForm() {
       const form = document.querySelector('#breeding-form');
