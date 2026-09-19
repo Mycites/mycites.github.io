@@ -3,7 +3,7 @@
   const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
   const apiRoot = 'https://www.googleapis.com/drive/v3/files';
   const $ = id => document.getElementById(id);
-  let token = '', expires = 0, userId = '', tokenClient, state = {}, base = '', dirty = false, busy = false, timer, epoch = 0, locked = true;
+  let token = '', expires = 0, userId = '', tokenClient, state = {}, base = '', dirty = false, busy = false, timer, epoch = 0, locked = true, autoTried = false;
   let pendingLogin = null;
   const assetFiles = new Map();
   const keys = CitesCloudPackage.keys;
@@ -156,7 +156,7 @@
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
   window.citesAccountReady = () => {
     tokenClient = google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:async response=>{
-      if (response.error) { status('Google 연결에 실패했습니다: '+response.error,true); return; }
+      if (response.error) { status(autoTried ? 'Google 계정으로 로그인해 주세요.' : 'Google 연결에 실패했습니다: '+response.error, Boolean(!autoTried)); return; }
       try {
         const nextToken = response.access_token;
         const identityResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+nextToken}});
@@ -168,8 +168,10 @@
         localStorage.setItem('cites-account-preferred','1');
         if (reconnect && dirty) { locked=false;await save(); } else await load();
       } catch(error) {status(error.message,true);}
-    },error_callback:()=>status('로그인 창이 닫혔거나 열리지 않았습니다. 다시 눌러 주세요.',true)});
-    $('login').disabled=false; status('Google 계정으로 로그인해 주세요.');
+    },error_callback:()=>status(autoTried ? 'Google 계정으로 로그인해 주세요.' : '로그인 창이 닫혔거나 열리지 않았습니다. 다시 눌러 주세요.', Boolean(!autoTried))});
+    $('login').disabled=false;
     $('login').onclick=()=>{if(busy)return;tokenClient.requestAccessToken({prompt:userId?'':'select_account'});};
+    if (localStorage.getItem('cites-account-preferred')) { autoTried = true; status('이전 로그인 정보를 확인하는 중…'); tokenClient.requestAccessToken({prompt:''}); }
+    else status('Google 계정으로 로그인해 주세요.');
   };
 })();
