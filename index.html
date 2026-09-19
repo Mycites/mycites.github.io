@@ -103,8 +103,8 @@
       const tools = document.querySelector('#data-tools'); if (tools) tools.hidden = true;
       const accountLink = document.querySelector('#account-mode-link');
       if (accountLink) {
-        accountLink.innerHTML = '<span class="nav-icon">🚪</span>로그아웃';
-        accountLink.addEventListener('click', event => { event.preventDefault(); window.parent.document.getElementById('logout')?.click(); });
+        accountLink.innerHTML = '<span class="nav-icon">⚙</span>계정 설정';
+        accountLink.addEventListener('click', event => { event.preventDefault(); window.parent.citesToggleAccountPanel?.(); });
       }
     }
     const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');

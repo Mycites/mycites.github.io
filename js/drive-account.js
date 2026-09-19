@@ -46,18 +46,18 @@
   }
   function showWorkspace() {
     $('welcome').hidden = true; $('workspace').hidden = false; $('tools').hidden = false;
-    $('login').hidden = true; $('save').hidden = false; $('reload').hidden = false; $('logout').hidden = false;
+    $('login').hidden = true;
     if (!$('workspace').getAttribute('src')) $('workspace').src = 'index.html?account=1'; else $('workspace').contentWindow.location.replace('index.html?account=1');
   }
   async function openSnapshot(file) {
     const manifest = await (await request(apiRoot+'/'+encodeURIComponent(file.id)+'?alt=media')).json();
     if (manifest.owner !== userId || manifest.format !== 'cites-drive-v1') throw new Error('이 계정의 기록 파일이 아닙니다.');
     const assets = {};
-    for (const [hash, asset] of Object.entries(manifest.assets || {})) {
+    await Promise.all(Object.entries(manifest.assets || {}).map(async ([hash, asset]) => {
       const blob = await (await request(apiRoot+'/'+encodeURIComponent(asset.fileId)+'?alt=media')).blob();
       assets[hash] = await new Promise((resolve,reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(new Blob([blob],{type:asset.mime})); });
       assetFiles.set(hash, asset);
-    }
+    }));
     const records = await CitesCloudPackage.unpack({format:'cites-cloud-v1', records:manifest.records, assets});
     state = Object.fromEntries(keys.map(key => [key,JSON.stringify(records[key])])); base = file.id; dirty = false; locked = false; $('conflicts').hidden = true; showWorkspace(); status('계정 기록을 불러왔습니다.');
   }
@@ -91,13 +91,13 @@
       const snapshot = {...state};
       const bundle = await CitesCloudPackage.pack({getItem:key=>snapshot[key] ?? null});
       const assets = {};
-      for (const [hash,data] of Object.entries(bundle.assets)) {
+      await Promise.all(Object.entries(bundle.assets).map(async ([hash,data]) => {
         if (!assetFiles.has(hash)) {
           const blob = await (await fetch(data)).blob(); const result = await create('사이테스_첨부_'+hash.slice(0,16), 'asset', blob,{hash});
           assetFiles.set(hash,{fileId:result.id,mime:blob.type});
         }
-        assets[hash] = assetFiles.get(hash);
-      }
+      }));
+      Object.keys(bundle.assets).forEach(hash => { assets[hash] = assetFiles.get(hash); });
       // Immutable revisions prevent one device from overwriting another device's data.
       const manifest = {format:'cites-drive-v1',owner:userId,records:bundle.records,assets};
       const result = await create('사이테스 기록_'+new Date().toISOString()+'.json','snapshot',new Blob([JSON.stringify(manifest)],{type:'application/json'}),{parents:expected.join(',')});
@@ -126,8 +126,9 @@
     if (dirty && !confirm('계정에 저장되지 않은 변경이 있습니다. 기록을 내려받았나요? 로그아웃하면 이 변경은 사라집니다.')) return;
     clearTimeout(timer); token='';expires=0;userId='';state={};base='';dirty=false;locked=true;assetFiles.clear();mergeParents=null;
     $('workspace').removeAttribute('src');$('workspace').hidden=true;$('welcome').hidden=false;$('tools').hidden=true;$('conflicts').hidden=true;$('identity').textContent='';
-    $('login').hidden=false; ['save','reload','logout'].forEach(id=>$(id).hidden=true); status('로그아웃했습니다.');
+    $('login').hidden=false; $('account-panel').hidden=true; status('로그아웃했습니다.');
   };
+  window.citesToggleAccountPanel = () => { $('account-panel').hidden = !$('account-panel').hidden; };
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
   window.citesAccountReady = () => {
     tokenClient = google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:async response=>{
