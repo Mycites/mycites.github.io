@@ -192,7 +192,7 @@
     const addSpeciesEntry = (values = {}) => { const row = document.createElement('div'); row.className = 'species-entry'; row.innerHTML = '<label>한글 종명<input class="species-name" aria-label="대상 종명" placeholder="예: 다이아몬드백테라핀" required></label><label>학명 (선택)<input class="scientific-name" aria-label="학명 (선택)" placeholder="예: Malaclemys terrapin"></label><label>수량<input aria-label="관리 수량" class="species-count" type="number" min="1" step="1" value="1"></label><button class="remove-species" type="button">삭제</button>'; entries.append(row); row.querySelector('.species-name').value = values.species || ''; row.querySelector('.scientific-name').value = values.scientificName || ''; row.querySelector('.species-count').value = values.count ?? 1; row.querySelector('.species-count').addEventListener('input', updateSelection); row.querySelector('.species-name').addEventListener('input', updateSelection); row.querySelector('.remove-species').addEventListener('click', () => { if (entries.children.length === 1) return; row.remove(); updateSelection(); }); };
     const updateSelection = () => { const required = speciesEntries().reduce((total, entry) => total + (Number.isInteger(entry.count) ? entry.count : 0), 0); const current = checks.querySelectorAll('input:checked').length; document.querySelector('#selection-status').textContent = document.querySelector("#document-kind").value !== "acquisition" ? `처리 대상 ${current}마리 · 종과 수량은 자동으로 기록됩니다.` : `선택 ${current}마리 / 종별 서류 수량 합계 ${required}마리`; };
     const renderAnimalChecks = () => { checks.innerHTML = animals.length ? animals.map(animal => `<label class="animal-check"><input type="checkbox" name="document-animal" value="${escapeHtml(animal.id)}"><span class="animal-choice-text"><strong title="${escapeHtml(animal.name)}">${escapeHtml(animal.name)}</strong><small title="${escapeHtml(animal.species)}">${escapeHtml(animal.species)}</small></span></label>`).join('') : '<p class="helper">먼저 동물 관리에서 개체를 등록해 주세요.</p>'; checks.querySelectorAll('input').forEach(input => input.addEventListener('change', updateSelection)); };
-    document.querySelector('#document-toggle').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); document.querySelector('#document-kind').disabled = false; entries.replaceChildren(); form.querySelector('button[type=submit]').textContent = '서류 저장'; form.classList.add('open'); renderAnimalChecks(); addSpeciesEntry(); updateKind(false); updateSelection(); });
+    document.querySelector('#document-toggle').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); document.querySelector('#existing-file-reextract')?.remove(); document.querySelector('#document-kind').disabled = false; entries.replaceChildren(); form.querySelector('button[type=submit]').textContent = '서류 저장'; form.classList.add('open'); renderAnimalChecks(); addSpeciesEntry(); updateKind(false); updateSelection(); });
     function updateKind(rebuild = true) {
       const kind = document.querySelector('#document-kind').value;
       const event = ['transfer', 'death'].includes(kind);
@@ -232,7 +232,7 @@
       document.querySelector('#extract-apply').hidden = true;
       document.querySelector('#extract-status').textContent = '종 항목을 입력란에 반영했습니다. 원본과 비교한 뒤 서류를 저장해 주세요.';
     });
-    document.querySelector('#document-cancel').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); entries.innerHTML = ''; form.classList.remove('open'); });
+    document.querySelector('#document-cancel').addEventListener('click', () => { editingId = null; editingSnapshot = null; form.reset(); document.querySelector('#existing-file-reextract')?.remove(); entries.innerHTML = ''; form.classList.remove('open'); });
     list.addEventListener('click', event => {
       const animalToggle = event.target.closest('[data-toggle-animals]');
       if (animalToggle) {
@@ -276,6 +276,15 @@
       renderAnimalChecks(); checks.querySelectorAll('input').forEach(input => { input.checked = (doc.animalIds || []).includes(input.value); });
       form.querySelector('button[type=submit]').textContent = '서류 수정 저장';
       document.querySelector('#extract-status').textContent = doc.fileName ? '기존 파일: ' + doc.fileName + ' · 새 파일을 선택하지 않으면 유지합니다.' : '';
+      document.querySelector('#existing-file-reextract')?.remove();
+      if (doc.fileData) {
+        const reextractButton = document.createElement('button');
+        reextractButton.type = 'button'; reextractButton.className = 'cancel'; reextractButton.id = 'existing-file-reextract';
+        reextractButton.style.marginTop = '8px';
+        reextractButton.textContent = '기존 파일로 자동 추출 다시 하기';
+        reextractButton.addEventListener('click', () => CitesDocumentExtract.useExistingFile(doc.fileData, doc.fileName));
+        document.querySelector('#extract-status').after(reextractButton);
+      }
       updateKind(false); updateSelection(); form.classList.add('open'); form.scrollIntoView({behavior:'smooth',block:'start'});
     });
     form.addEventListener('submit', async event => {

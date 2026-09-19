@@ -3,6 +3,7 @@
   const OCR_BASE = 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist';
   const byId = id => document.getElementById(id);
   let activeJob = null;
+  let currentFile = null;
   let ocrLibrary;
   function loadOcr() {
     if (!ocrLibrary) ocrLibrary = new Promise((resolve, reject) => {
@@ -130,7 +131,7 @@
     const lines = text.split(/\r?\n/).map(line => line.trim().replace(/\s+/g, ' ')).filter(Boolean);
     const titles = [], references = [];
     const titleLabel = /^(?:서\s*류\s*(?:이\s*름|명)|문\s*서\s*명|제\s*목|document\s*(?:title|name))\s*[:：]?\s*/i;
-    const referenceLabel = /(?:관\s*리|허\s*가|발\s*급|승\s*인|신\s*고|증\s*명\s*서)\s*번\s*호|(?:permit|certificate|reference|document)\s*(?:no\.?|number)|허\s*가\s*서\s*번\s*호/gi;
+    const referenceLabel = /(?:관\s*리|허\s*가|발\s*급|승\s*인|신\s*고|증\s*명\s*서|증\s*서|접\s*수)\s*번\s*호|(?:permit|certificate|reference|document)\s*(?:no\.?|number)|허\s*가\s*서\s*번\s*호/gi;
     const add = (list, value) => { if (value && !list.includes(value)) list.push(value); };
     lines.forEach((line, index) => {
       if (titleLabel.test(line)) {
@@ -181,7 +182,7 @@
   async function start(forceOcr) {
     if (activeJob) return;
     byId('extract-choice').hidden = true;
-    const file = byId('document-file').files[0];
+    const file = currentFile;
     if (!file) { status('먼저 서류 파일을 선택해 주세요.'); return; }
     if (file.size > 1024 * 1024) { status('현재 서류 저장 한도인 1MB 이하의 파일을 선택해 주세요.'); return; }
     byId('extract-review').hidden = true; byId('extract-text').value = ''; byId('extract-suggestions').replaceChildren();
@@ -240,15 +241,26 @@
   function reset() {
     cancel(''); byId('extract-review').hidden = true; byId('extract-text').value = ''; byId('extract-suggestions').replaceChildren();
     byId('extract-choice').hidden = true;
+    currentFile = null;
     ['title', 'reference'].forEach(key => { byId(`extract-${key}`).value = ''; byId(`extract-${key}-use`).checked = false; byId(`extract-${key}-options`).replaceChildren(); });
   }
   byId('document-file').addEventListener('change', () => {
     reset();
-    if (byId('document-file').files.length) {
+    currentFile = byId('document-file').files[0] || null;
+    if (currentFile) {
       byId('extract-choice').hidden = false;
       byId('extract-manual').focus();
     }
   });
   byId('document-form').addEventListener('reset', reset);
-  window.CitesDocumentExtract = { parseSpecies, parseMetadata, textLines };
+  async function useExistingFile(dataUrl, fileName) {
+    reset();
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      currentFile = new File([blob], fileName || '기존 파일', { type: blob.type || 'application/octet-stream' });
+    } catch { status('기존 파일을 불러오지 못했습니다.'); return; }
+    byId('extract-choice').hidden = false;
+    byId('extract-manual').focus();
+  }
+  window.CitesDocumentExtract = { parseSpecies, parseMetadata, textLines, useExistingFile };
 })();
