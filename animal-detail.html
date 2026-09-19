@@ -236,7 +236,7 @@
         if (!confirm('이 개체를 삭제할까요? 삭제는 되돌릴 수 없습니다.')) return;
         try { CitesRecords.deleteAnimal(id); location.href = 'animals.html'; } catch (error) { alert(error.message); }
       });
-      const gallery = document.createElement('section'); const heading = document.createElement('h2'); heading.textContent = '개체 · 사육환경 사진'; gallery.append(heading); CitesPhotos.gallery(gallery, animal); document.querySelector('.hero').after(gallery);
+      const gallery = document.createElement('section'); CitesPhotos.gallery(gallery, animal); document.querySelector('.hero').after(gallery);
       setupDocumentForm(); setupQuantityForm(); renderDocuments(); setupRecordForm(); renderRecords();
       if (new URLSearchParams(location.search).get('record') === 'new') { document.querySelector('#breeding-form').classList.add('open'); document.querySelector('#breeding-form').scrollIntoView(); }
       const addHatchId = new URLSearchParams(location.search).get('addHatch');

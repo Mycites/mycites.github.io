@@ -51,8 +51,14 @@
   function gallery(container, animal) {
     const photos = [...(animal.photo ? [{data:animal.photo, name:animal.photoName || '대표 개체 사진', type:'개체 사진'}] : []), ...resolve(animal.photos)];
     if (!photos.length) { const text = document.createElement('p'); text.textContent = '등록된 사진이 없습니다. 정보 수정에서 추가하세요.'; container.append(text); }
-    const grid = document.createElement('div'); grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:18px'; container.append(grid);
-    photos.forEach(photo => { const card = document.createElement('div'); card.style.maxWidth = '100%'; const title = document.createElement('p'); title.textContent = `${photo.name} · ${photo.type}`; title.style.overflowWrap = 'anywhere'; const link = document.createElement('a'); link.href = photo.data; link.download = photo.name || '사진'; link.textContent = '내려받기'; card.append(image(photo.data, photo.name), title, link); grid.append(card); });
+    const grid = document.createElement('div'); grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:14px'; container.append(grid);
+    photos.forEach(photo => {
+      const card = document.createElement('div'); card.style.maxWidth = '100%';
+      const badge = document.createElement('span'); badge.textContent = photo.type; badge.style.cssText = 'display:inline-block;margin-bottom:6px;padding:3px 9px;border-radius:999px;background:#e2f2e9;color:#25694f;font-size:.72rem;font-weight:700';
+      const img = image(photo.data, photo.name); img.style.margin = '0 0 6px';
+      const link = document.createElement('a'); link.href = photo.data; link.download = photo.name || '사진'; link.textContent = '내려받기'; link.style.cssText = 'display:block;font-size:.8rem';
+      card.append(badge, img, link); grid.append(card);
+    });
   }
   function editor(container, initial) {
     let photos = resolve(initial), busy = false;
