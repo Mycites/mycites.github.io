@@ -132,8 +132,8 @@
     const titles = [], references = [];
     const titleLabel = /^(?:서\s*류\s*(?:이\s*름|명)|문\s*서\s*명|제\s*목|document\s*(?:title|name))\s*[:：]?\s*/i;
     const referenceLabel = /(?:관\s*리|허\s*가|발\s*급|승\s*인|신\s*고|증\s*명\s*서|증\s*서)\s*번\s*호|(?:permit|certificate|reference|document)\s*(?:no\.?|number)|허\s*가\s*서\s*번\s*호/gi;
-    // TR-prefixed codes are a known reference-number format on their own, even without a label nearby.
-    const standaloneReference = /\bTR-[A-Za-z0-9-]{4,}\b/gi;
+    // The 신고확인증 page often prints its own number as a bare "제 코드 호" line with no label at all.
+    const standaloneReferenceLine = /^제\s*([A-Za-z0-9][A-Za-z0-9._/-]*)\s*호$/;
     const add = (list, value) => { if (value && !list.includes(value)) list.push(value); };
     lines.forEach((line, index) => {
       if (titleLabel.test(line)) {
@@ -147,7 +147,8 @@
         const value = tail.match(/^(?:제\s*)?([A-Za-z가-힣0-9][A-Za-z가-힣0-9._/\-]*(?:\s*-\s*[A-Za-z가-힣0-9]+)*)(?:\s*호)?/u)?.[1];
         if (value && /\d/.test(value) && value.length >= 2) add(references, value.replace(/\s*-\s*/g, '-').replace(/호$/, ''));
       }
-      for (const match of line.matchAll(standaloneReference)) add(references, match[0]);
+      const wholeLineMatch = line.match(standaloneReferenceLine);
+      if (wholeLineMatch && wholeLineMatch[1].length >= 4 && /\d/.test(wholeLineMatch[1])) add(references, wholeLineMatch[1]);
     });
     return { titles, references };
   }
