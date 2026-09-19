@@ -12,6 +12,7 @@
     aside { display:flex; flex-direction:column; gap:30px; padding:26px 16px; color:#eaf7f0; background:var(--forest); }
     .brand { display:flex; align-items:center; gap:10px; padding:0 10px; font-weight:800; font-size:1.1rem; } .brand-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; color:var(--forest); background:#bfe4d2; font-size:1.25rem; }
     nav { display:grid; gap:6px; } nav a { display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:11px; color:#d1e5db; text-decoration:none; font-size:.95rem; } nav a:hover, nav a.active { color:#fff; background:#297d66; } .nav-icon { width:22px; text-align:center; }
+    #account-submenu { display:grid; gap:2px; padding:2px 0 2px 34px; } #account-submenu button { display:block; width:100%; text-align:left; padding:9px 10px; border:0; border-radius:8px; color:#b8d9ca; background:transparent; font:inherit; font-size:.86rem; cursor:pointer; } #account-submenu button:hover { color:#fff; background:#297d66; }
     .guide { margin-top:auto; padding:14px; border:1px solid #398a74; border-radius:15px; background:#1a4d41; } .guide img { width:68px; height:68px; object-fit:contain; float:right; margin:-10px -8px 0 6px; } .guide strong { display:block; font-size:.9rem; } .guide p { margin:5px 0 0; color:#b8d9ca; font-size:.78rem; line-height:1.5; }
     main { padding:28px clamp(22px,4vw,58px) 56px; overflow:hidden; } .topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:38px; } .crumb { color:var(--muted); font-size:.9rem; } .user { display:flex; align-items:center; gap:10px; } .user-badge { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:#fff; background:#e7a46b; font-weight:800; }
     .google-action { padding:9px 11px; border:1px solid #b9d9ca; border-radius:9px; color:#245746; background:#fff; font:inherit; font-size:.8rem; font-weight:750; cursor:pointer; } .google-action.primary { border-color:var(--green); color:#fff; background:var(--green); } .google-action:disabled { cursor:wait; opacity:.65; } .sync-status { color:var(--muted); font-size:.73rem; } .file-action { position:relative; overflow:hidden; } .file-action input { position:absolute; inset:0; width:100%; height:100%; cursor:pointer; opacity:0; }
@@ -103,8 +104,24 @@
       const tools = document.querySelector('#data-tools'); if (tools) tools.hidden = true;
       const accountLink = document.querySelector('#account-mode-link');
       if (accountLink) {
-        accountLink.innerHTML = '<span class="nav-icon">⚙</span>계정 설정';
-        accountLink.addEventListener('click', event => { event.preventDefault(); window.parent.citesToggleAccountPanel?.(); });
+        accountLink.setAttribute('href', '#');
+        accountLink.innerHTML = '<span class="nav-icon">🗂</span>데이터 관리';
+        const submenu = document.createElement('div');
+        submenu.id = 'account-submenu';
+        submenu.hidden = true;
+        submenu.innerHTML = [
+          ['save', '지금 저장'],
+          ['reload', '최신 기록 불러오기'],
+          ['migrate', '이 기기 기록 가져오기'],
+          ['export', '기록 파일 내려받기'],
+          ['logout', '로그아웃'],
+        ].map(([action, label]) => `<button type="button" data-account-action="${action}">${label}</button>`).join('');
+        accountLink.after(submenu);
+        accountLink.addEventListener('click', event => { event.preventDefault(); submenu.hidden = !submenu.hidden; });
+        submenu.addEventListener('click', event => {
+          const button = event.target.closest('[data-account-action]'); if (!button) return;
+          window.parent.document.getElementById(button.dataset.accountAction)?.click();
+        });
       }
     }
     const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');

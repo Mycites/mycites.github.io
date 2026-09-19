@@ -45,7 +45,7 @@
     return (await request('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {method:'POST',body})).json();
   }
   function showWorkspace() {
-    $('welcome').hidden = true; $('workspace').hidden = false; $('tools').hidden = false;
+    $('welcome').hidden = true; $('workspace').hidden = false;
     $('login').hidden = true;
     if (!$('workspace').getAttribute('src')) $('workspace').src = 'index.html?account=1'; else $('workspace').contentWindow.location.replace('index.html?account=1');
   }
@@ -125,10 +125,9 @@
     if (busy) { status('저장이 끝난 뒤 로그아웃해 주세요.',true); return; }
     if (dirty && !confirm('계정에 저장되지 않은 변경이 있습니다. 기록을 내려받았나요? 로그아웃하면 이 변경은 사라집니다.')) return;
     clearTimeout(timer); token='';expires=0;userId='';state={};base='';dirty=false;locked=true;assetFiles.clear();mergeParents=null;
-    $('workspace').removeAttribute('src');$('workspace').hidden=true;$('welcome').hidden=false;$('tools').hidden=true;$('conflicts').hidden=true;$('identity').textContent='';
+    $('workspace').removeAttribute('src');$('workspace').hidden=true;$('welcome').hidden=false;$('conflicts').hidden=true;$('identity').textContent='';
     $('login').hidden=false; $('account-panel').hidden=true; status('로그아웃했습니다.');
   };
-  window.citesToggleAccountPanel = () => { $('account-panel').hidden = !$('account-panel').hidden; };
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
   window.citesAccountReady = () => {
     tokenClient = google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:async response=>{
