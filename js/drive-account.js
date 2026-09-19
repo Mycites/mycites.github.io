@@ -112,8 +112,33 @@
     const data = {format:'cites-backup-v1',exportedAt:new Date().toISOString(),records:Object.fromEntries(keys.map(key=>[key,JSON.parse(state[key] || '[]')]))};
     const url = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); const link = document.createElement('a'); link.href = url; link.download = '사이테스-계정기록.json'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  function resetDeviceData() {
+    if (!confirm('이 기기(브라우저)에 저장된 기존 PC 기록(동물·서류·사진·증식 기록)을 모두 지울까요? Google 계정에 저장된 기록에는 영향을 주지 않으며, 되돌릴 수 없습니다.')) return;
+    keys.forEach(key => localStorage.removeItem(key));
+    alert('이 기기의 PC 기록을 지웠습니다.');
+  }
+  async function resetAccountData() {
+    if (busy) { status('작업이 끝난 뒤 다시 시도해 주세요.',true); return; }
+    if (!confirm(($('identity').textContent || '이 계정') + '의 Google Drive에 저장된 모든 사이테스 기록·사진·서류를 삭제할까요? 이 작업은 되돌릴 수 없습니다. 먼저 "기록 파일 내려받기"로 백업하는 것을 권장합니다.')) return;
+    if (!confirm('마지막 확인입니다. 삭제하면 복구할 수 없습니다. 정말 모두 삭제할까요?')) return;
+    busy = true; status('계정 기록을 삭제하는 중…');
+    try {
+      const q = "trashed = false and appProperties has { key='citesApp' and value='account-v1' }";
+      const files = []; let page = '';
+      do {
+        const params = new URLSearchParams({q, fields:'nextPageToken,files(id)', pageSize:'1000'}); if (page) params.set('pageToken', page);
+        const result = await (await request(apiRoot + '?' + params)).json(); files.push(...(result.files || [])); page = result.nextPageToken || '';
+      } while (page);
+      await Promise.all(files.map(file => request(apiRoot + '/' + encodeURIComponent(file.id), {method:'DELETE'})));
+      state = {}; base = ''; dirty = false; assetFiles.clear(); mergeParents = null; locked = false;
+      status('계정 기록을 모두 삭제했습니다.');
+    } catch (error) { status('삭제하지 못했습니다: '+error.message,true); }
+    finally { busy = false; }
+  }
   $('save').onclick = save;
   $('export').onclick = exportRecords;
+  $('reset-device').onclick = resetDeviceData;
+  $('reset-account').onclick = resetAccountData;
   $('reload').onclick = async () => { if (busy) return; if (dirty && !confirm('저장하지 않은 변경이 있습니다. 내려받기로 보관했나요? 계정의 최신 기록으로 바꿀까요?')) return; try { await load(); } catch(error) { status(error.message,true); } };
   $('migrate').onclick = async () => {
     if (busy || locked) return;
