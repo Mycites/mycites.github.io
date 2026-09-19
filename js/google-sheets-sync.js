@@ -170,7 +170,6 @@
     const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
-  const readDataUrl = file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.addEventListener('load', () => resolve(reader.result)); reader.addEventListener('error', () => reject(new Error('사진을 읽지 못했습니다.'))); reader.readAsDataURL(file); });
   const isBreedingKind = kind => kind === '산란' || kind === '부화';
   const updateCalendarBreedingFields = () => {
     const kind = byId('calendar-kind').value;
@@ -202,12 +201,11 @@
     if (breeding && !animal) { setCalendarMessage('산란·부화 기록은 개체를 선택해 주세요.'); return; }
     if (kind === '산란' && (!Number.isInteger(Number(eggs)) || Number(eggs) < 1)) { setCalendarMessage('산란 알 수를 1 이상 입력해 주세요.'); return; }
     if (kind === '부화' && (!Number.isInteger(Number(hatchlings)) || Number(hatchlings) < 0)) { setCalendarMessage('부화 수를 0 이상 입력해 주세요.'); return; }
-    if (photoFile && photoFile.size > 1024 * 1024) { setCalendarMessage('기록 사진은 1MB 이하로 선택해 주세요.'); return; }
     const title = byId('calendar-title').value.trim() || (breeding ? `${animal.name} ${kind} 기록` : '새 일정');
     try {
       setCalendarMessage('Google Calendar에 일정을 추가하는 중입니다…');
       const note = byId('calendar-note').value.trim();
-      const photo = photoFile ? await readDataUrl(photoFile) : '';
+      const photo = photoFile ? await CitesPhotos.read(photoFile) : '';
       const details = [note, breeding ? `개체: ${animal.name}` : '', breeding ? `종: ${animal.species}` : '', eggs ? `산란 알 수: ${eggs}` : '', hatchlings ? `부화 수: ${hatchlings}` : '', temperature ? `부화 온도: ${temperature}℃` : ''].filter(Boolean).join('\n');
       const created = await api('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', body:JSON.stringify({ summary:`[사이테스 기록장] ${kind}: ${title}`, description:details, start:{ date }, end:{ date:nextDay(date) } }) });
       const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]');

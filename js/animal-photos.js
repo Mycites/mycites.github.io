@@ -1,12 +1,29 @@
 (() => {
   const image = (src, name) => { const img = document.createElement('img'); img.src = src; img.alt = name; img.style.cssText = 'display:block;width:180px;max-width:100%;height:130px;object-fit:contain;border-radius:10px;background:#edf4ef;margin:10px 0'; return img; };
+  const MAX_BYTES = 1024 * 1024;
+  const estimateBytes = dataUrl => Math.ceil((dataUrl.length - dataUrl.indexOf(',') - 1) * 3 / 4);
+  function shrink(img, maxSide, quality) {
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+  function compress(img) {
+    // Photos over 1MB are re-encoded as JPEG at shrinking size/quality until they fit, instead of being rejected.
+    for (const [maxSide, quality] of [[1600, 0.85], [1600, 0.6], [1100, 0.6], [1100, 0.45], [720, 0.45]]) {
+      const data = shrink(img, maxSide, quality);
+      if (estimateBytes(data) <= MAX_BYTES) return data;
+    }
+    throw new Error('사진 용량을 1MB 이하로 줄이지 못했습니다. 더 작은 사진을 선택해 주세요.');
+  }
   async function read(file) {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('JPG·PNG·WebP 사진을 선택해 주세요.');
-    if (file.size > 1024 * 1024) throw new Error('사진은 1MB 이하로 선택해 주세요.');
     const data = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('사진을 읽지 못했습니다.')); reader.readAsDataURL(file); });
     const img = new Image(); img.src = data;
     try { await img.decode(); } catch { throw new Error('열 수 없는 사진 파일입니다.'); }
-    return data;
+    return file.size > MAX_BYTES ? compress(img) : data;
   }
   const libraryKey = 'cites-shared-photos';
   const library = () => JSON.parse(CitesStorage.getItem(libraryKey) || '[]');
@@ -39,7 +56,7 @@
   }
   function editor(container, initial) {
     let photos = resolve(initial), busy = false;
-    container.innerHTML = '<h3>추가 사진</h3><label>사진 종류<select data-kind><option>개체 사진</option><option>사육환경 사진</option></select></label><label>사진 이름<input data-name placeholder="예: 거실 사육장 전체"></label><label>사진 추가 (1MB 이하)<input data-file type="file" accept="image/jpeg,image/png,image/webp"></label><p data-message role="status"></p><div data-selected></div><h3>등록된 사육환경 사진에서 선택</h3><div data-shared></div>';
+    container.innerHTML = '<h3>추가 사진</h3><label>사진 종류<select data-kind><option>개체 사진</option><option>사육환경 사진</option></select></label><label>사진 이름<input data-name placeholder="예: 거실 사육장 전체"></label><label>사진 추가 (큰 사진은 자동으로 줄여서 저장)<input data-file type="file" accept="image/jpeg,image/png,image/webp"></label><p data-message role="status"></p><div data-selected></div><h3>등록된 사육환경 사진에서 선택</h3><div data-shared></div>';
     const list = container.querySelector('[data-selected]'), message = container.querySelector('[data-message]');
     const shared = library();
     function render() {

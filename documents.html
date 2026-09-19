@@ -45,6 +45,12 @@
     .connection-status.needs-registration { color:#b42318;background:#fff0ee;border:1px solid #edaaa3;font-weight:800; }
     .linked-animal-list { border-top:1px solid var(--line);padding-top:10px; }
     .linked-animal-list a { display:inline-block;padding:5px 8px;margin:3px;border:1px solid var(--line);border-radius:7px; }
+    .photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; margin-top:14px; }
+    .photo-card { padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; text-align:center; }
+    .photo-card img { display:block; width:100%; height:110px; object-fit:cover; border-radius:8px; margin-bottom:8px; background:#eef4f0; }
+    .photo-card .tag { display:inline-block; margin:4px 0; }
+    .photo-card .photo-owners { margin:4px 0; color:var(--muted); font-size:.78rem; overflow-wrap:anywhere; }
+    .photo-card p.helper { margin:6px 0 0; }
   </style>
 </head>
 <body>
@@ -55,11 +61,16 @@
     <form class="document-form" id="document-form"><div class="field full"><label for="document-file">서류 파일 (선택 · PDF 또는 이미지, 1MB 이하)</label><input id="document-file" type="file" accept="application/pdf,image/png,image/jpeg,image/webp"><section id="extract-choice" hidden aria-labelledby="extract-choice-title" tabindex="-1"><h2 id="extract-choice-title">서류 내용을 자동으로 읽어올까요?</h2><p class="helper">자동 읽기는 시간이 걸릴 수 있고 모든 내용을 정확히 읽지는 못합니다. 결과를 원본과 비교해 확인해 주세요.</p><div class="extract-tools"><button class="cancel" type="button" id="extract-manual">직접 입력하기</button><button class="button" type="button" id="extract-auto">자동으로 읽기</button></div></section><div class="extract-tools"><button class="cancel" type="button" id="extract-start">PDF·이미지 자동 추출</button><button class="cancel" type="button" id="extract-ocr">전체를 무료 OCR로 읽기</button><button class="cancel" type="button" id="extract-cancel" hidden>추출 중지</button></div><p class="helper">PDF 글자를 먼저 읽고, 글자가 없는 페이지와 이미지는 한글·영문 OCR로 읽습니다. 파일은 외부 서버로 전송하지 않으며, 최초 실행 시 인식 도구를 내려받습니다. 파일 1MB·PDF 20쪽까지 지원합니다.</p><p class="helper" id="extract-status" role="status" aria-live="polite"></p><div id="extract-review" hidden><h2>추출 결과 확인</h2><section class="extract-metadata" aria-label="서류 이름과 관리번호 후보"><p class="helper" id="extract-metadata-help"></p><div class="metadata-grid"><div><label for="extract-title">서류 이름 후보</label><input id="extract-title" list="extract-title-options" placeholder="찾지 못했다면 직접 입력"><datalist id="extract-title-options"></datalist><p class="helper" id="extract-title-current"></p><label class="metadata-check"><input type="checkbox" id="extract-title-use">서류 이름 반영</label></div><div><label for="extract-reference">관리번호 후보</label><input id="extract-reference" list="extract-reference-options" placeholder="원본의 허가·발급·관리번호 확인"><datalist id="extract-reference-options"></datalist><p class="helper" id="extract-reference-current"></p><label class="metadata-check"><input type="checkbox" id="extract-reference-use">관리번호 반영</label></div></div><p class="helper">체크한 항목만 반영합니다. 이미 입력한 값은 선택한 후보로 바뀝니다.</p><button type="button" class="button" id="extract-metadata-apply">선택한 이름·관리번호 반영</button></section><p id="extract-review-help" class="helper"></p><div id="extract-suggestions"></div><button type="button" class="button" id="extract-apply" hidden>확인한 종 항목 반영</button><details style="margin-top:14px"><summary>추출문 보기·수정</summary><label for="extract-text">읽어 온 내용</label><textarea id="extract-text"></textarea><button type="button" class="cancel" id="extract-reparse">수정한 내용에서 전체 후보 다시 찾기</button></details></div></div><div class="field full"><label for="document-kind">서류 종류</label><select id="document-kind"><option value="acquisition">신고서류 (증식·양수·수입허가)</option><option value="transfer">양도</option><option value="death">폐사</option></select><p class="helper" id="document-kind-help">보유 동물의 근거 서류를 등록합니다.</p></div><div><label for="document-title">서류 이름</label><input id="document-title" placeholder="예: 수입 허가서 2026-01" required></div><div><label for="document-reference">관리 번호 (선택)</label><input id="document-reference" placeholder="예: CITES-2026-001"></div><div class="field full"><label>대상 종과 관리 수량</label><p class="helper">서류에 적힌 종명, 학명(선택), 각 종의 관리 수량을 입력하세요. 학명은 동물 등록에서 선택할 수 있어요.</p><div id="species-entries"></div><button class="cancel" type="button" id="add-species" style="margin-top:10px">+ 대상 종 추가</button></div><div class="field full"><label id="document-animals-label">연결할 등록 개체 (선택)</label><p class="helper" id="document-animals-help">동물이 아직 없다면 선택하지 않고 서류만 먼저 저장할 수 있어요. 각 종별 관리 수량 이내에서 선택해 주세요.</p><p class="helper selection-status" id="selection-status"></p><div class="animal-checks" id="animal-checks"></div></div><div class="field full form-actions"><button class="cancel" type="button" id="document-cancel">취소</button><button class="button" type="submit">서류와 개체 연결 저장</button></div></form>
     <div class="document-filters" role="group" aria-label="서류 분류"><button type="button" class="cancel" data-filter="all" aria-pressed="true">전체</button><button type="button" class="cancel" data-filter="acquisition" aria-pressed="false">신고서류</button><button type="button" class="cancel" data-filter="death" aria-pressed="false">폐사</button><button type="button" class="cancel" data-filter="transfer" aria-pressed="false">양도</button></div><p class="helper" style="margin-bottom:12px">신고서류에는 증식·양수·수입허가 서류가 포함됩니다.</p>
     <label style="display:flex;align-items:center;gap:8px;margin:0 0 16px"><input id="show-exhausted" type="checkbox" style="width:auto;margin:0">수량 0인 서류 보기 <span id="exhausted-count"></span></label><section id="document-list" class="list"></section>
+    <div class="top" style="margin-top:34px"><div><h2>사진</h2><p class="sub">개체 사진과 사육환경 사진을 한 곳에서 확인하고 관리하세요.</p></div><button class="button" type="button" id="photo-toggle">+ 사진 등록</button></div>
+    <form class="document-form" id="photo-form"><div class="field full"><label for="photo-animal">등록할 개체</label><select id="photo-animal"></select></div><div class="field full" id="photo-editor-box"></div><div class="field full form-actions"><button class="cancel" type="button" id="photo-cancel">취소</button><button class="button" type="submit">사진 저장</button></div></form>
+    <p class="helper" id="photo-empty" hidden>등록된 사진이 없습니다. 동물 등록·수정 화면이나 위 "+ 사진 등록" 버튼에서 추가해 주세요.</p>
+    <section id="photo-gallery" class="photo-grid"></section>
     <p class="notice" id="storage-notice">이 화면은 개인 기록 관리용입니다. 법률·행정 판단을 대신하지 않으며, 파일은 현재 브라우저에만 저장됩니다.</p>
   </main>
   <script src="js/storage-bridge.js"></script>
   <script src="js/record-store.js"></script>
   <script src="js/document-links.js"></script>
+  <script src="js/animal-photos.js"></script>
   <script>
     if (window.CitesAccountMode) document.querySelector('#storage-notice').textContent = '이 화면은 개인 기록 관리용입니다. 법률·행정 판단을 대신하지 않으며, 기록은 로그인한 Google 계정의 Drive에 저장됩니다.';
     const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
@@ -257,6 +268,92 @@
         }
         CitesRecords.saveDocument(input, editing); location.reload();
       } catch (error) { alert(error.message); submit.disabled = false; }
+    });
+    function loadAnimals() { return JSON.parse(CitesStorage.getItem('cites-animals') || '[]'); }
+    function buildPhotoInventory() {
+      const currentAnimals = loadAnimals();
+      const sharedLibrary = JSON.parse(CitesStorage.getItem('cites-shared-photos') || '[]');
+      const sharedUsage = new Map();
+      currentAnimals.forEach(animal => (animal.photos || []).forEach(photo => {
+        if (photo.data || !photo.id) return;
+        if (!sharedUsage.has(photo.id)) sharedUsage.set(photo.id, []);
+        sharedUsage.get(photo.id).push({ animalId:animal.id, animalName:animal.name });
+      }));
+      const items = [];
+      currentAnimals.forEach(animal => {
+        if (animal.photo) items.push({ key:'primary:'+animal.id, kind:'primary', type:'개체 사진', name:animal.photoName || '대표 개체 사진', data:animal.photo, owners:[{ animalId:animal.id, animalName:animal.name }], ownerAnimalId:animal.id });
+        (animal.photos || []).forEach((photo, index) => {
+          if (!photo.data) return;
+          items.push({ key:'own:'+animal.id+':'+index, kind:'own', type:photo.type, name:photo.name, data:photo.data, owners:[{ animalId:animal.id, animalName:animal.name }], ownerAnimalId:animal.id, photoIndex:index });
+        });
+      });
+      sharedLibrary.forEach(photo => {
+        items.push({ key:'shared:'+photo.id, kind:'shared', type:photo.type, name:photo.name, data:photo.data, owners:sharedUsage.get(photo.id) || [], sharedId:photo.id });
+      });
+      return items;
+    }
+    function deletePhotoItem(item) {
+      const currentAnimals = loadAnimals();
+      if (item.kind === 'primary') {
+        const animal = currentAnimals.find(a => a.id === item.ownerAnimalId);
+        if (!animal) { alert('개체를 찾을 수 없습니다. 새로고침해 주세요.'); return; }
+        if (!confirm(animal.name + '의 대표 사진을 삭제할까요?')) return;
+        animal.photo = ''; animal.photoName = '';
+        CitesStorage.setItem('cites-animals', JSON.stringify(currentAnimals));
+      } else if (item.kind === 'own') {
+        const animal = currentAnimals.find(a => a.id === item.ownerAnimalId);
+        if (!animal) { alert('개체를 찾을 수 없습니다. 새로고침해 주세요.'); return; }
+        if (!confirm('이 사진을 삭제할까요?')) return;
+        animal.photos = (animal.photos || []).filter((_, index) => index !== item.photoIndex);
+        CitesStorage.setItem('cites-animals', JSON.stringify(currentAnimals));
+      } else {
+        if (item.owners.length > 1) { alert('이 사진은 ' + item.owners.map(owner => owner.animalName).join(', ') + '에 함께 연결되어 있어 삭제할 수 없습니다. 먼저 각 개체의 정보 수정 화면에서 연결을 해제해 주세요.'); return; }
+        if (!confirm('이 사진을 삭제할까요?')) return;
+        const library = JSON.parse(CitesStorage.getItem('cites-shared-photos') || '[]').filter(photo => photo.id !== item.sharedId);
+        CitesStorage.setItem('cites-shared-photos', JSON.stringify(library));
+        if (item.owners.length === 1) {
+          const animal = currentAnimals.find(a => a.id === item.owners[0].animalId);
+          if (animal) { animal.photos = (animal.photos || []).filter(photo => photo.id !== item.sharedId); CitesStorage.setItem('cites-animals', JSON.stringify(currentAnimals)); }
+        }
+      }
+      renderPhotoGallery();
+    }
+    function renderPhotoGallery() {
+      const items = buildPhotoInventory();
+      const gallery = document.querySelector('#photo-gallery');
+      document.querySelector('#photo-empty').hidden = items.length > 0;
+      gallery.innerHTML = items.map(item => `<article class="photo-card"><img src="${escapeHtml(item.data)}" alt="${escapeHtml(item.name)}"><span class="tag">${escapeHtml(item.type)}</span><p class="photo-owners">${item.owners.length ? escapeHtml(item.owners.map(owner => owner.animalName).join(', ')) : '연결된 개체 없음'}</p><p class="helper" style="overflow-wrap:anywhere">${escapeHtml(item.name)}</p><button type="button" class="cancel" data-delete-photo="${escapeHtml(item.key)}">삭제</button></article>`).join('');
+      gallery.querySelectorAll('[data-delete-photo]').forEach(button => button.addEventListener('click', () => {
+        const target = items.find(entry => entry.key === button.dataset.deletePhoto);
+        if (target) deletePhotoItem(target);
+      }));
+    }
+    renderPhotoGallery();
+    let photoEditorHandle = null;
+    function refreshPhotoEditor() {
+      const selected = loadAnimals().find(a => a.id === document.querySelector('#photo-animal').value);
+      photoEditorHandle = CitesPhotos.editor(document.querySelector('#photo-editor-box'), selected?.photos || []);
+    }
+    document.querySelector('#photo-toggle').addEventListener('click', () => {
+      const currentAnimals = loadAnimals();
+      if (!currentAnimals.length) { alert('먼저 동물을 등록해 주세요.'); return; }
+      document.querySelector('#photo-animal').innerHTML = currentAnimals.map(animal => `<option value="${escapeHtml(animal.id)}">${escapeHtml(animal.name)} · ${escapeHtml(animal.species)}</option>`).join('');
+      refreshPhotoEditor();
+      document.querySelector('#photo-form').classList.add('open');
+    });
+    document.querySelector('#photo-animal').addEventListener('change', refreshPhotoEditor);
+    document.querySelector('#photo-cancel').addEventListener('click', () => { document.querySelector('#photo-form').classList.remove('open'); document.querySelector('#photo-form').reset(); });
+    document.querySelector('#photo-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (photoEditorHandle?.loading()) { alert('사진을 읽는 중입니다. 잠시 후 저장해 주세요.'); return; }
+      const animal = loadAnimals().find(a => a.id === document.querySelector('#photo-animal').value);
+      if (!animal) { alert('개체를 찾을 수 없습니다. 새로고침해 주세요.'); return; }
+      const updatedAnimal = { ...animal, photos:photoEditorHandle.values() };
+      const linkedDocumentIds = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').filter(doc => (doc.animalIds || []).includes(animal.id)).map(doc => doc.id);
+      try { CitesDocumentLinks.saveAnimal(updatedAnimal, linkedDocumentIds, true); }
+      catch (error) { alert(error.message); return; }
+      document.querySelector('#photo-form').classList.remove('open'); document.querySelector('#photo-form').reset();
+      renderPhotoGallery();
     });
   </script>
   <script src="js/document-extract.js"></script>
