@@ -161,7 +161,7 @@
       byId(`extract-${key}-use`).checked = values.length === 1 && !byId(`document-${key}`).value.trim();
       byId(`extract-${key}-current`).textContent = `현재 입력: ${byId(`document-${key}`).value.trim() || '없음'}${values.length > 1 ? ' · 후보가 여러 개입니다. 입력칸에서 선택하거나 수정하세요.' : ''}`;
     });
-    byId('extract-metadata-help').textContent = '서류 제목과 관리·허가·발급번호를 찾은 결과입니다. 찾지 못한 항목은 비워 두며, 여러 후보가 있으면 직접 선택해 주세요.';
+    byId('extract-metadata-help').textContent = '서류 제목과 관리·허가·발급번호를 찾은 결과입니다. OCR이 도장이나 작은 글씨의 일부 글자를 다른 글자·숫자로 잘못 읽을 수 있으니 원본과 반드시 비교해 확인해 주세요. 찾지 못한 항목은 비워 두며, 여러 후보가 있으면 직접 선택해 주세요.';
   }
   function showSuggestions() {
     showMetadata();
