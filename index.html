@@ -101,7 +101,11 @@
   <script>
     if (window.CitesAccountMode) {
       const tools = document.querySelector('#data-tools'); if (tools) tools.hidden = true;
-      const accountLink = document.querySelector('#account-mode-link'); if (accountLink) accountLink.hidden = true;
+      const accountLink = document.querySelector('#account-mode-link');
+      if (accountLink) {
+        accountLink.innerHTML = '<span class="nav-icon">🚪</span>로그아웃';
+        accountLink.addEventListener('click', event => { event.preventDefault(); window.parent.document.getElementById('logout')?.click(); });
+      }
     }
     const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
     const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');

@@ -46,7 +46,7 @@
   }
   function showWorkspace() {
     $('welcome').hidden = true; $('workspace').hidden = false; $('tools').hidden = false;
-    $('save').hidden = false; $('reload').hidden = false; $('logout').hidden = false;
+    $('login').hidden = true; $('save').hidden = false; $('reload').hidden = false; $('logout').hidden = false;
     if (!$('workspace').getAttribute('src')) $('workspace').src = 'index.html?account=1'; else $('workspace').contentWindow.location.replace('index.html?account=1');
   }
   async function openSnapshot(file) {
@@ -126,7 +126,7 @@
     if (dirty && !confirm('계정에 저장되지 않은 변경이 있습니다. 기록을 내려받았나요? 로그아웃하면 이 변경은 사라집니다.')) return;
     clearTimeout(timer); token='';expires=0;userId='';state={};base='';dirty=false;locked=true;assetFiles.clear();mergeParents=null;
     $('workspace').removeAttribute('src');$('workspace').hidden=true;$('welcome').hidden=false;$('tools').hidden=true;$('conflicts').hidden=true;$('identity').textContent='';
-    ['save','reload','logout'].forEach(id=>$(id).hidden=true); status('로그아웃했습니다.');
+    $('login').hidden=false; ['save','reload','logout'].forEach(id=>$(id).hidden=true); status('로그아웃했습니다.');
   };
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
   window.citesAccountReady = () => {
