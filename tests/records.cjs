@@ -2,7 +2,7 @@ const {chromium}=require('playwright');
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict');
 const root=path.resolve(__dirname,'..');
 {
-  const vm=require('vm');let values={},fail=false;const context={window:{},localStorage:{getItem:k=>values[k]??null,setItem:(k,v)=>{if(fail&&k==='cites-animals')throw Error('quota');values[k]=v;},removeItem:k=>{delete values[k];}}};
+  const vm=require('vm');let values={},fail=false;const storage={getItem:k=>values[k]??null,setItem:(k,v)=>{if(fail&&k==='cites-animals')throw Error('quota');values[k]=v;},removeItem:k=>{delete values[k];}};const context={window:{},localStorage:storage,CitesStorage:storage};
   vm.runInNewContext(fs.readFileSync(path.join(root,'js/record-store.js'),'utf8'),context);
   const records=context.window.CitesRecords;
   values['cites-animals']=JSON.stringify([{id:'a',species:'테라핀'}]);

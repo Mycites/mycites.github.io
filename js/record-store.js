@@ -1,5 +1,5 @@
 (() => {
-  const read = key => JSON.parse(localStorage.getItem(key) || '[]');
+  const read = key => JSON.parse(CitesStorage.getItem(key) || '[]');
   const normalize = value => String(value || '').replace(/\s/g, '').toLowerCase();
   const matches = (entry, animal) => entry.scientificName && animal.scientificName
     ? normalize(entry.scientificName) === normalize(animal.scientificName)
@@ -16,12 +16,12 @@
     return [...groups.values()];
   }
   function write(changes) {
-    const previous = Object.fromEntries(Object.keys(changes).map(key => [key, localStorage.getItem(key)]));
+    const previous = Object.fromEntries(Object.keys(changes).map(key => [key, CitesStorage.getItem(key)]));
     const written = [];
     try {
-      for (const [key, value] of Object.entries(changes)) { localStorage.setItem(key, JSON.stringify(value)); written.push(key); }
+      for (const [key, value] of Object.entries(changes)) { CitesStorage.setItem(key, JSON.stringify(value)); written.push(key); }
     } catch (error) {
-      for (const key of written.reverse()) { if (previous[key] === null) localStorage.removeItem(key); else localStorage.setItem(key, previous[key]); }
+      for (const key of written.reverse()) { if (previous[key] === null) CitesStorage.removeItem(key); else CitesStorage.setItem(key, previous[key]); }
       throw new Error('저장하지 못했습니다. 저장 공간을 확인해 주세요.', { cause:error });
     }
   }

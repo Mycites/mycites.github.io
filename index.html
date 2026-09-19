@@ -43,6 +43,7 @@
         <a href="breeding.html"><span class="nav-icon">🥚</span>증식 기록</a>
         <a href="documents.html"><span class="nav-icon">▤</span>서류 · 사진</a>
         <a href="#alerts"><span class="nav-icon">◉</span>알림</a>
+        <a href="account.html" id="account-mode-link"><span class="nav-icon">☁</span>Google 계정으로 사용</a>
       </nav>
       <div class="guide">
         <img src="assets/terrapin-guide.png" alt="다이아몬드백 테라핀 캐릭터">
@@ -54,7 +55,7 @@
     <main id="dashboard">
       <div class="topbar">
         <span class="crumb">내 사육 기록 / 대시보드</span>
-        <details class="data-tools"><summary>백업 및 데이터 관리</summary><div class="user"><button class="google-action" type="button" id="export-data">기록 파일 내보내기</button><label class="google-action file-action">기록 파일 가져오기<input id="import-file" type="file" accept="application/json"></label><button class="google-action" type="button" id="google-connect" disabled>Google 연결 준비 중</button><button class="google-action primary" type="button" id="google-sync" hidden>Sheets에 백업</button><button class="google-action primary" type="button" id="google-drive" hidden>Drive에 사진·서류 백업</button><button class="google-action" type="button" id="google-restore" hidden>Sheets에서 불러오기</button><span class="sync-status" id="sync-status">이 기기의 기록은 아직 브라우저에만 저장됩니다.</span></div></details>
+        <details class="data-tools" id="data-tools"><summary>백업 및 데이터 관리</summary><div class="user"><button class="google-action" type="button" id="export-data">기록 파일 내보내기</button><label class="google-action file-action">기록 파일 가져오기<input id="import-file" type="file" accept="application/json"></label><button class="google-action" type="button" id="google-connect" disabled>Google 연결 준비 중</button><button class="google-action primary" type="button" id="google-sync" hidden>Sheets에 백업</button><button class="google-action primary" type="button" id="google-drive" hidden>Drive에 사진·서류 백업</button><button class="google-action" type="button" id="google-restore" hidden>Sheets에서 불러오기</button><span class="sync-status" id="sync-status">이 기기의 기록은 아직 브라우저에만 저장됩니다.</span></div></details>
       </div>
 
       <section class="hello">
@@ -94,11 +95,16 @@
       <p class="project-link"><a href="planning/project-plan.html">프로젝트 기획서 보기</a></p>
     </main>
   </div>
+  <script src="js/storage-bridge.js"></script>
   <script src="js/google-sheets-sync.js"></script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="googleIdentityReady()"></script>
   <script>
-    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
-    const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
+    if (window.CitesAccountMode) {
+      const tools = document.querySelector('#data-tools'); if (tools) tools.hidden = true;
+      const accountLink = document.querySelector('#account-mode-link'); if (accountLink) accountLink.hidden = true;
+    }
+    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
+    const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');
     const activeAnimals = animals.filter(animal => !['양도 완료', '폐사'].includes(animal.status));
     const speciesCount = new Set(activeAnimals.map(animal => animal.species).filter(Boolean)).size;
     const hatchlingCount = records.reduce((total, record) => total + (Number.parseInt(record.hatchlings, 10) || 0), 0);

@@ -57,11 +57,12 @@
     <label style="display:flex;align-items:center;gap:8px;margin:0 0 16px"><input id="show-exhausted" type="checkbox" style="width:auto;margin:0">수량 0인 서류 보기 <span id="exhausted-count"></span></label><section id="document-list" class="list"></section>
     <p class="notice">이 화면은 개인 기록 관리용입니다. 법률·행정 판단을 대신하지 않으며, 파일은 현재 브라우저에만 저장됩니다.</p>
   </main>
+  <script src="js/storage-bridge.js"></script>
   <script src="js/record-store.js"></script>
   <script src="js/document-links.js"></script>
   <script>
-    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
-    const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
+    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
+    const documents = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
     const escapeHtml = value => String(value || '미입력').replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
     const displayDate = value => value ? value.slice(0, 10).replaceAll('-', '.') : '';
     const initialQuantity = document => Number.isInteger(document.initialCount) ? document.initialCount : document.animalIds.length;
@@ -160,7 +161,7 @@
       document.querySelector('#document-animals-label').textContent = event ? '처리할 보유 동물 (필수)' : '연결할 등록 개체 (선택)';
       document.querySelector('#document-animals-help').textContent = event ? '양수·수입 서류가 연결된 보유 동물을 선택하세요. 이미 양도·폐사한 동물은 새 처리 대상에서 제외됩니다.' : '동물이 아직 없다면 선택하지 않고 서류만 먼저 저장할 수 있어요. 각 종별 관리 수량 이내에서 선택해 주세요.';
       document.querySelector('#document-kind-help').textContent = event ? (editingId ? '처리된 동물과 종류는 변경할 수 없습니다. 제목·번호·첨부파일은 수정할 수 있어요.' : '보유 중이며 양수·수입 서류가 연결된 동물을 선택하세요. 저장 시 상태와 원래 서류의 수량이 함께 변경됩니다.') : '보유 동물의 근거 서류를 등록합니다.';
-      const currentDocs = JSON.parse(localStorage.getItem('cites-documents') || '[]');
+      const currentDocs = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
       checks.querySelectorAll('input').forEach(input => {
         const animal = animals.find(animal => animal.id === input.value);
         const eligible = ['보유 중', '양도 예정'].includes(animal?.status) && currentDocs.some(doc => !CitesRecords.isEvent(doc) && (doc.animalIds || []).includes(input.value));
@@ -202,7 +203,7 @@
       }
       const view = event.target.closest('[data-view-document]');
       if (view) {
-        const doc = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === view.dataset.viewDocument);
+        const doc = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').find(item => item.id === view.dataset.viewDocument);
         if (doc?.fileData) CitesDocumentLinks.previewFile(doc);
         else alert('첨부파일을 찾을 수 없습니다. 새로고침해 주세요.');
         return;
@@ -216,12 +217,12 @@
       const edit = event.target.closest('[data-edit-document]');
       const remove = event.target.closest('[data-delete-document]');
       if (remove) {
-        const removing = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(doc => doc.id === remove.dataset.deleteDocument);
+        const removing = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').find(doc => doc.id === remove.dataset.deleteDocument);
         if (!confirm((CitesRecords.isEvent(removing || {}) ? '이 서류가 자동 반영한 동물 상태와 수량 감소를 이전 상태로 되돌립니다. ' : '') + '이 서류와 첨부파일·수량 기록을 삭제할까요? 동물은 삭제되지 않으며 서류 연결만 사라집니다. Google Drive의 백업은 유지됩니다. 삭제는 되돌릴 수 없습니다.')) return;
         try { CitesRecords.deleteDocument(remove.dataset.deleteDocument); location.reload(); } catch (error) { alert(error.message); }
       }
       if (!edit) return;
-      const doc = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === edit.dataset.editDocument);
+      const doc = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').find(item => item.id === edit.dataset.editDocument);
       if (!doc) { alert('서류를 찾을 수 없습니다. 새로고침해 주세요.'); return; }
       form.reset(); editingId = doc.id; editingSnapshot = JSON.stringify(doc); entries.replaceChildren();
       document.querySelector('#document-kind').value = doc.kind || 'acquisition'; document.querySelector('#document-kind').disabled = true;
@@ -250,7 +251,7 @@
           input.driveFileId = ''; input.driveFileUrl = '';
         }
         if (editing) {
-          const fresh = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === input.id);
+          const fresh = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').find(item => item.id === input.id);
           if (JSON.stringify(fresh) !== editingSnapshot) throw new Error('다른 화면에서 서류가 변경되었습니다. 새로고침한 뒤 다시 수정해 주세요.');
         }
         CitesRecords.saveDocument(input, editing); location.reload();

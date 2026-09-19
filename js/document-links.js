@@ -26,8 +26,8 @@
   }
   function saveAnimal(animal, documentIds, editing = false, count = 1) {
     if (!Number.isInteger(count) || count < 1 || count > 10 || (editing && count !== 1)) throw new Error("등록 마릿수는 1~10 사이의 정수로 입력해 주세요.");
-    const oldAnimals = localStorage.getItem('cites-animals');
-    const oldDocuments = localStorage.getItem('cites-documents');
+    const oldAnimals = CitesStorage.getItem('cites-animals');
+    const oldDocuments = CitesStorage.getItem('cites-documents');
     const animals = JSON.parse(oldAnimals || '[]');
     const names = new Set(animals.map(item => item.name));
     let number = 1;
@@ -51,31 +51,31 @@
     });
     if (editing) documents.forEach(doc => { if (!isEvent(doc) && !selected.includes(doc.id)) doc.animalIds = (doc.animalIds || []).filter(id => id !== animal.id); });
     let documentsWritten = false;
-    const oldShared = localStorage.getItem("cites-shared-photos");
+    const oldShared = CitesStorage.getItem("cites-shared-photos");
     let sharedWritten = false;
     try {
       if (selected.length || editing) {
-        localStorage.setItem('cites-documents', JSON.stringify(documents));
+        CitesStorage.setItem('cites-documents', JSON.stringify(documents));
         documentsWritten = true;
       }
       const nextAnimals = editing ? animals.map(item => item.id === animal.id ? animal : item) : [...batch, ...animals];
       const packed = window.CitesPhotos ? CitesPhotos.compact(nextAnimals) : {animals:nextAnimals};
-      if (packed.photos) { localStorage.setItem('cites-shared-photos', JSON.stringify(packed.photos)); sharedWritten = true; }
-      localStorage.setItem('cites-animals', JSON.stringify(packed.animals));
+      if (packed.photos) { CitesStorage.setItem('cites-shared-photos', JSON.stringify(packed.photos)); sharedWritten = true; }
+      CitesStorage.setItem('cites-animals', JSON.stringify(packed.animals));
     } catch (error) {
-      if (sharedWritten) { if (oldShared === null) localStorage.removeItem("cites-shared-photos"); else localStorage.setItem("cites-shared-photos", oldShared); }
+      if (sharedWritten) { if (oldShared === null) CitesStorage.removeItem("cites-shared-photos"); else CitesStorage.setItem("cites-shared-photos", oldShared); }
       if (documentsWritten) {
-        if (oldDocuments === null) localStorage.removeItem('cites-documents');
-        else localStorage.setItem('cites-documents', oldDocuments);
+        if (oldDocuments === null) CitesStorage.removeItem('cites-documents');
+        else CitesStorage.setItem('cites-documents', oldDocuments);
       }
       throw new Error('저장 공간이 부족하거나 저장할 수 없습니다. 사진 용량을 줄인 뒤 다시 시도해 주세요.', { cause:error });
     }
   }
   function saveLinks(animalId, documentIds) {
-    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
     const animal = animals.find(item => item.id === animalId);
     if (!animal) throw new Error('동물 기록을 찾을 수 없습니다. 새로고침해 주세요.');
-    const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
+    const documents = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
     const available = candidates(animal, documents, animals);
     const selected = new Set(documentIds);
     selected.forEach(id => {
@@ -91,7 +91,7 @@
       if (selected.has(doc.id)) ids.add(animalId); else ids.delete(animalId);
       doc.animalIds = [...ids];
     });
-    try { localStorage.setItem('cites-documents', JSON.stringify(documents)); }
+    try { CitesStorage.setItem('cites-documents', JSON.stringify(documents)); }
     catch { throw new Error('서류 연결을 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); }
   }
   function previewFile(doc) {
@@ -119,8 +119,8 @@
     dialog.showModal(); close.focus();
   }
   function renderPicker(container, target, selectedIds = []) {
-    const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
-    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+    const documents = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
+    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
     const available = candidates(target, documents, animals);
     container.replaceChildren();
     if (!documents.length) {
@@ -147,8 +147,8 @@
       container.append(label);
       input.addEventListener('change', () => {
         if (!input.checked) return;
-        const freshDocuments = JSON.parse(localStorage.getItem('cites-documents') || '[]');
-        const freshAnimals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+        const freshDocuments = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
+        const freshAnimals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
         const fresh = freshDocuments.find(item => item.id === doc.id);
         if (target.id && (fresh?.animalIds || []).includes(target.id)) return;
         const current = candidates(target, freshDocuments, freshAnimals).find(item => item.document.id === doc.id);

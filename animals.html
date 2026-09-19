@@ -33,10 +33,11 @@
     <div class="top"><div><a href="index.html">← 대시보드</a><h1>동물 관리</h1><p class="sub">등록한 동물을 사진과 이름으로 빠르게 찾아보세요.</p></div><a class="add" href="animal-register.html">+ 새 동물 등록</a></div>
     <section id="animal-list" class="grid" aria-label="등록한 동물 목록"></section>
   </main>
+  <script src="js/storage-bridge.js"></script>
   <script src="js/record-store.js"></script>
   <script>
     const list = document.querySelector('#animal-list');
-    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
     if (!animals.length) {
       list.className = 'empty';
       list.innerHTML = '<strong>아직 등록한 동물이 없어요.</strong><p>첫 번째 개체를 등록하면 이곳에서 사진과 이름으로 확인할 수 있습니다.</p><a class="add" href="animal-register.html">첫 동물 등록하기</a>';

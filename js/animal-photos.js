@@ -9,7 +9,7 @@
     return data;
   }
   const libraryKey = 'cites-shared-photos';
-  const library = () => JSON.parse(localStorage.getItem(libraryKey) || '[]');
+  const library = () => JSON.parse(CitesStorage.getItem(libraryKey) || '[]');
   const resolve = photos => (photos || []).map(photo => photo.data ? {...photo} : {...library().find(item => item.id === photo.id), ...photo}).filter(photo => photo.data);
   function compact(animals, existing = library()) {
     const pool = existing.map(photo => ({...photo}));
@@ -22,14 +22,14 @@
     return {animals:records, photos:pool};
   }
   function migrate() {
-    const old = localStorage.getItem('cites-animals'); if (!old) return;
+    const old = CitesStorage.getItem('cites-animals'); if (!old) return;
     const animals = JSON.parse(old); if (!animals.some(animal => animal.photos?.some(photo => photo.type === '사육환경 사진' && photo.data))) return;
     const result = compact(animals);
     // Retain the original in memory while freeing duplicated image storage.
     // Both writes are synchronous; restore it if the library write fails.
-    localStorage.setItem('cites-animals', JSON.stringify(result.animals));
-    try { localStorage.setItem(libraryKey, JSON.stringify(result.photos)); }
-    catch (error) { localStorage.setItem('cites-animals', old); throw error; }
+    CitesStorage.setItem('cites-animals', JSON.stringify(result.animals));
+    try { CitesStorage.setItem(libraryKey, JSON.stringify(result.photos)); }
+    catch (error) { CitesStorage.setItem('cites-animals', old); throw error; }
   }
   function gallery(container, animal) {
     const photos = [...(animal.photo ? [{data:animal.photo, name:animal.photoName || '대표 개체 사진', type:'개체 사진'}] : []), ...resolve(animal.photos)];

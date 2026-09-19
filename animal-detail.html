@@ -20,12 +20,13 @@
 </head>
 <body class="page-detail">
   <main id="app"></main>
+  <script src="js/storage-bridge.js"></script>
   <script src="js/document-links.js"></script><script src="js/animal-photos.js"></script><script src="js/breeding-parents.js"></script>
   <script src="js/record-store.js"></script>
   <script>
     const app = document.querySelector('#app');
     const id = new URLSearchParams(location.search).get('id');
-    const animals = JSON.parse(localStorage.getItem('cites-animals') || '[]');
+    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
     const animal = animals.find(item => item.id === id);
     const escapeHtml = value => String(value || '미입력').replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
     const displayDate = value => value ? value.replaceAll('-', '.') : '';
@@ -35,9 +36,9 @@
     const calendarStatus = message => { const target = document.querySelector('#breeding-calendar-status'); if (target) target.textContent = message; };
     const nextDay = value => { const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + 1); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
     const saveCalendarListItem = (record, eventId) => {
-      const events = JSON.parse(localStorage.getItem('cites-calendar-events') || '[]');
+      const events = JSON.parse(CitesStorage.getItem('cites-calendar-events') || '[]');
       if (!events.some(event => event.id === eventId)) events.push({ id:eventId, kind:record.type, title:`${animal.name} ${record.type} 기록`, date:record.laidAt || record.hatchedAt, note:record.memo || '' });
-      localStorage.setItem('cites-calendar-events', JSON.stringify(events));
+      CitesStorage.setItem('cites-calendar-events', JSON.stringify(events));
     };
     const addBreedingCalendarEvent = async record => {
       const eventDate = record.laidAt || record.hatchedAt;
@@ -48,9 +49,9 @@
           const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', { method:'POST', headers:{ Authorization:`Bearer ${calendarAccessToken}`, 'Content-Type':'application/json' }, body:JSON.stringify({ summary:`[사이테스 기록장] ${record.type}: ${animal.name}`, description, start:{ date:eventDate }, end:{ date:nextDay(eventDate) } }) });
           if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error?.message || 'Google Calendar 요청에 실패했습니다.');
           const event = await response.json(); record.calendarEventId = event.id;
-          const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
+          const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');
           const saved = records.find(item => item.id === record.id); if (saved) saved.calendarEventId = event.id;
-          localStorage.setItem('cites-breeding-records', JSON.stringify(records)); saveCalendarListItem(record, event.id);
+          CitesStorage.setItem('cites-breeding-records', JSON.stringify(records)); saveCalendarListItem(record, event.id);
           calendarStatus('산란·부화일을 Google Calendar에도 추가했습니다.');
         } catch (error) { calendarStatus(`기록은 저장됐지만 Calendar 추가는 하지 못했습니다: ${error.message}`); }
       };
@@ -63,14 +64,14 @@
       calendarTokenClient.requestAccessToken({ prompt:'' });
     };
     window.breedingCalendarReady = () => { calendarTokenClient = google.accounts.oauth2.initTokenClient({ client_id:CALENDAR_CLIENT_ID, scope:'https://www.googleapis.com/auth/calendar.events', callback:'' }); };
-    function recordsForAnimal() { return JSON.parse(localStorage.getItem('cites-breeding-records') || '[]').filter(record => [record.animalId, record.motherId, record.fatherId].includes(id)); }
-    function documentsForAnimal() { return JSON.parse(localStorage.getItem('cites-documents') || '[]').filter(document => document.animalIds.includes(id)); }
+    function recordsForAnimal() { return JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]').filter(record => [record.animalId, record.motherId, record.fatherId].includes(id)); }
+    function documentsForAnimal() { return JSON.parse(CitesStorage.getItem('cites-documents') || '[]').filter(document => document.animalIds.includes(id)); }
     function initialQuantity(document) { return Number.isInteger(document.initialCount) ? document.initialCount : document.animalIds.length; }
     function usedQuantity(document) { return (document.quantityChanges || []).reduce((total, change) => total + Number(change.count || 0), 0); }
     function remainingQuantity(document) { return Math.max(0, initialQuantity(document) - usedQuantity(document)); }
     function speciesEntries(document) { return document.speciesEntries?.length ? document.speciesEntries : [{ species:document.species || animal.species, count:initialQuantity(document) }]; }
     function remainingSpeciesQuantity(document, species) { return Math.max(0, Number(speciesEntries(document).find(entry => entry.species === species)?.count || 0) - (document.quantityChanges || []).filter(change => change.species === species).reduce((total, change) => total + Number(change.count || 0), 0)); }
-    function updateQuantitySpecies() { const documentId = document.querySelector('#quantity-document')?.value; const selectedDocument = JSON.parse(localStorage.getItem('cites-documents') || '[]').find(item => item.id === documentId); const select = document.querySelector('#quantity-species'); if (!select || !selectedDocument) return; select.innerHTML = speciesEntries(selectedDocument).map(entry => `<option value="${escapeHtml(entry.species)}">${escapeHtml(entry.species)} · 남은 ${remainingSpeciesQuantity(selectedDocument, entry.species)}마리</option>`).join(''); }
+    function updateQuantitySpecies() { const documentId = document.querySelector('#quantity-document')?.value; const selectedDocument = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').find(item => item.id === documentId); const select = document.querySelector('#quantity-species'); if (!select || !selectedDocument) return; select.innerHTML = speciesEntries(selectedDocument).map(entry => `<option value="${escapeHtml(entry.species)}">${escapeHtml(entry.species)} · 남은 ${remainingSpeciesQuantity(selectedDocument, entry.species)}마리</option>`).join(''); }
     function renderRecords() {
       const records = recordsForAnimal();
       const target = document.querySelector('#records');
@@ -86,7 +87,7 @@
       const parentBox = document.createElement('div'); parentBox.className = 'field full'; form.prepend(parentBox);
       const parents = CitesParents.mount(parentBox, animals, animal.sex === '수컷' ? '' : id, new URLSearchParams(location.search).get('father') || (animal.sex === '수컷' ? id : ''));
       const editRecordId = new URLSearchParams(location.search).get('editRecord');
-      let editingRecord = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]').find(item => item.id === editRecordId);
+      let editingRecord = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]').find(item => item.id === editRecordId);
       if (editingRecord) {
         form.classList.add('open');
         for (const [field, value] of Object.entries({'record-type':editingRecord.type, 'record-date':editingRecord.hatchedAt || editingRecord.laidAt, eggs:editingRecord.eggs, hatchlings:editingRecord.hatchlings, temperature:editingRecord.temperature, 'breeding-memo':editingRecord.memo})) form.querySelector('#'+field).value = value || '';
@@ -119,10 +120,10 @@
         if (photo && photo.size > 1024 * 1024) { alert('증식 사진은 1MB 이하로 선택해 주세요.'); return; }
         const save = photoData => {
           const record = { ...editingRecord, id:editingRecord?.id || crypto.randomUUID(), animalId:parents.values().motherId, ...parents.values(), type, laidAt:type === '산란' ? recordDate : '', hatchedAt:type === '부화' ? recordDate : '', temperature:form.querySelector('#temperature').value.trim(), eggs, hatchlings, memo:form.querySelector('#breeding-memo').value.trim(), photoName:photo?.name || editingRecord?.photoName || '', photo:photoData || editingRecord?.photo || '', createdAt:editingRecord?.createdAt || new Date().toISOString(), updatedAt:new Date().toISOString() };
-          const records = JSON.parse(localStorage.getItem('cites-breeding-records') || '[]');
+          const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');
           if (editingRecord) { const index=records.findIndex(item=>item.id===editingRecord.id); if(index<0){alert('기록이 삭제되었습니다. 새로고침해 주세요.');return;} records[index]=record; } else records.unshift(record);
           if (photo) { record.drivePhotoId='';record.drivePhotoUrl=''; }
-          try { localStorage.setItem('cites-breeding-records', JSON.stringify(records)); } catch { alert('브라우저 저장 공간이 부족합니다. 더 작은 사진을 사용해 주세요.'); return; }
+          try { CitesStorage.setItem('cites-breeding-records', JSON.stringify(records)); } catch { alert('브라우저 저장 공간이 부족합니다. 더 작은 사진을 사용해 주세요.'); return; }
           if (editingRecord) { location.href='animal-detail.html?id='+encodeURIComponent(id); return; }
           form.reset(); form.classList.remove('open'); renderRecords();
           if (addToCalendar) addBreedingCalendarEvent(record);
@@ -170,7 +171,7 @@
       const form = document.querySelector('#document-form');
       const picker = document.querySelector('#existing-documents');
       const refresh = () => {
-        const linked = JSON.parse(localStorage.getItem('cites-documents') || '[]').filter(item => (item.animalIds || []).includes(id)).map(item => item.id);
+        const linked = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').filter(item => (item.animalIds || []).includes(id)).map(item => item.id);
         CitesDocumentLinks.renderPicker(picker, animal, linked);
       };
       document.querySelector('#document-toggle').addEventListener('click', () => { refresh(); form.classList.add('open'); });

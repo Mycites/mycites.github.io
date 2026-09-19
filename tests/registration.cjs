@@ -20,7 +20,7 @@ function unitTests() {
     setItem:(key, value) => { if (failAnimals && key === 'cites-animals') throw new Error('quota'); values[key] = value; },
     removeItem:key => { delete values[key]; }
   };
-  const context = { window:{}, localStorage };
+  const context = { window:{}, localStorage, CitesStorage:localStorage };
   vm.runInNewContext(fs.readFileSync(path.join(root, 'js/document-links.js'), 'utf8'), context);
   const { candidates, saveAnimal } = context.window.CitesDocumentLinks;
   const animal = { id:'a', species:'테라핀', scientificName:'Malaclemys terrapin' };

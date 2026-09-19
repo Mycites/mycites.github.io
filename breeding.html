@@ -5,8 +5,8 @@
 </style></head><body><main><a href="index.html">← 대시보드</a><h1>증식 기록</h1><p class="muted">개체별 산란·부화 기록을 모아 확인하세요.</p>
 <section><h2>산란·부화 기록 추가</h2><p class="muted">동물을 선택하면 해당 개체의 기록 입력 화면이 열립니다.</p><form id="new-record"><div id="parents"></div><button>기록 추가</button></form><p id="no-animals" hidden>먼저 <a href="animal-register.html">동물을 등록</a>해 주세요.</p></section>
 <section class="filters"><label for="kind">기록 종류</label><select id="kind"><option value="">전체</option><option>산란</option><option>부화</option></select><label for="owner">동물</label><select id="owner"><option value="">전체 동물</option></select><span id="count" class="muted" role="status"></span></section><div id="records" class="records"></div>
-<script src="js/breeding-parents.js"></script><script>
-const animals=JSON.parse(localStorage.getItem('cites-animals')||'[]'),records=JSON.parse(localStorage.getItem('cites-breeding-records')||'[]');
+<script src="js/storage-bridge.js"></script><script src="js/breeding-parents.js"></script><script>
+const animals=JSON.parse(CitesStorage.getItem('cites-animals')||'[]'),records=JSON.parse(CitesStorage.getItem('cites-breeding-records')||'[]');
 const byId=id=>document.getElementById(id);const esc=value=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 animals.forEach(animal=>byId('owner').add(new Option(animal.name,animal.id)));
 const parents=CitesParents.mount(byId('parents'),animals);

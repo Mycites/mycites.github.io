@@ -57,6 +57,7 @@
       <aside class="tip"><h2>입력 도움말</h2><p id="tip-text">필수 정보부터 입력하세요. 사진과 서류는 나중에 연결해도 됩니다.</p></aside>
     </div>
   </main>
+  <script src="js/storage-bridge.js"></script>
   <script src="js/document-links.js"></script><script src="js/animal-photos.js"></script>
   <script>
     const form = document.querySelector('#animal-form');
@@ -67,7 +68,7 @@
     const done = document.querySelector('#done');
     const tip = document.querySelector('#tip-text');
     const editId = new URLSearchParams(location.search).get('edit');
-    const editSource = JSON.parse(localStorage.getItem('cites-animals') || '[]').find(item => item.id === editId);
+    const editSource = JSON.parse(CitesStorage.getItem('cites-animals') || '[]').find(item => item.id === editId);
     if (editId && !editSource) { alert('수정할 동물을 찾을 수 없습니다.'); location.replace('animals.html'); }
     const scientificName = document.querySelector('#scientific-name');
     const normalizeSpecies = value => String(value || '').replace(/\s+/g, '').toLowerCase();
@@ -91,7 +92,7 @@
     });
     function updateScientificNames() {
       const knownSpecies = new Map();
-      JSON.parse(localStorage.getItem('cites-documents') || '[]').forEach(doc => {
+      JSON.parse(CitesStorage.getItem('cites-documents') || '[]').forEach(doc => {
         (doc.speciesEntries?.length ? doc.speciesEntries : [doc]).forEach(entry => { const name = String(entry.species || '').trim(); if (name && !knownSpecies.has(normalizeSpecies(name))) knownSpecies.set(normalizeSpecies(name), name); });
       });
       speciesPicker.replaceChildren(new Option('등록된 종명 선택 또는 직접 입력', ''));
@@ -100,7 +101,7 @@
 
       const previousValue = scientificName.value;
       const species = normalizeSpecies(document.querySelector('#species').value);
-      const documents = JSON.parse(localStorage.getItem('cites-documents') || '[]');
+      const documents = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
       const names = new Map();
       documents.forEach(item => {
         const entries = item.speciesEntries?.length ? item.speciesEntries : [item];
@@ -126,7 +127,7 @@
     window.addEventListener('pageshow', event => { if (event.persisted) updateScientificNames(); });
     window.addEventListener('storage', event => { if (event.key === 'cites-documents' || event.key === 'cites-animals') updateScientificNames(); });
     const copyId = new URLSearchParams(location.search).get('copy');
-    const copySource = editSource || JSON.parse(localStorage.getItem('cites-animals') || '[]').find(item => item.id === copyId);
+    const copySource = editSource || JSON.parse(CitesStorage.getItem('cites-animals') || '[]').find(item => item.id === copyId);
     if (copyId && !editSource) {
       const field = document.createElement('div'); field.className='field full';
       field.innerHTML='<label for="copy-count">등록 마릿수</label><select id="copy-count" required><option value="1">1마리</option><option value="2">2마리</option><option value="3">3마리</option><option value="4">4마리</option><option value="5">5마리</option><option value="6">6마리</option><option value="7">7마리</option><option value="8">8마리</option><option value="9">9마리</option><option value="10">10마리</option></select><p class="helper">여러 마리는 입력한 이름 뒤에 번호를 붙입니다. 이미 있는 이름은 건너뜁니다. 선택한 서류에 전체 마릿수만큼 여유가 있어야 합니다.</p>';
@@ -150,7 +151,7 @@
       document.querySelector('#status').value = editSource.status;
       if (editSource.statusDocumentId) { document.querySelector('#status').disabled = true; document.querySelector('#status').title = '양도·폐사 서류에서 처리된 상태'; }
       done.textContent = '수정 저장';
-      const linked = JSON.parse(localStorage.getItem('cites-documents') || '[]').filter(doc => (doc.animalIds || []).includes(editId)).map(doc => doc.id);
+      const linked = JSON.parse(CitesStorage.getItem('cites-documents') || '[]').filter(doc => (doc.animalIds || []).includes(editId)).map(doc => doc.id);
       CitesDocumentLinks.renderPicker(document.querySelector('#document-candidates'), editSource, linked);
     }
     let current = 1;
