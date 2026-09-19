@@ -241,6 +241,8 @@
       const gallery = document.createElement('section'); const heading = document.createElement('h2'); heading.textContent = '개체 · 사육환경 사진'; gallery.append(heading); CitesPhotos.gallery(gallery, animal); document.querySelector('.hero').after(gallery);
       setupDocumentForm(); setupQuantityForm(); renderDocuments(); setupRecordForm(); renderRecords();
       if (new URLSearchParams(location.search).get('record') === 'new') { document.querySelector('#breeding-form').classList.add('open'); document.querySelector('#breeding-form').scrollIntoView(); }
+      const addHatchId = new URLSearchParams(location.search).get('addHatch');
+      if (addHatchId) { const target = recordsForAnimal().find(item => item.id === addHatchId); if (target) openHatchDialog(target); }
     }
   </script>
   <script async defer src="https://accounts.google.com/gsi/client" onload="breedingCalendarReady()"></script>
