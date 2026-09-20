@@ -7,14 +7,26 @@
   <style>
     :root { --forest:#123f35; --green:#18755d; --mint:#eaf6ef; --cream:#fbfaf5; --ink:#18352d; --muted:#687b74; --line:#deebe4; } * { box-sizing:border-box; }
     body { margin:0; background:var(--cream); color:var(--ink); font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif; } main { width:min(1000px,100%); margin:auto; padding:32px 24px 64px; }
-    .top { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:35px; } a { color:var(--green); font-weight:750; text-decoration:none; } h1 { margin:0; font-size:clamp(2rem,5vw,3rem); letter-spacing:-.055em; } .sub { color:var(--muted); margin:9px 0 0; }
-    .add { display:inline-block; padding:12px 16px; border-radius:10px; color:#fff; background:var(--green); } .add:hover { background:#105d49; } .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:28px; }
-    .card { display:block; overflow:hidden; border:1px solid var(--line); border-radius:16px; color:inherit; background:#fff; text-decoration:none; } .card:hover { border-color:#8fc8b1; transform:translateY(-2px); } .picture { display:grid; place-items:center; height:150px; overflow:hidden; background:#dff1e8; font-size:4rem; } .picture img { width:100%; height:100%; object-fit:cover; } .info { padding:16px; } .info h2 { margin:0; font-size:1.08rem; } .info p { margin:5px 0 12px; color:var(--muted); font-size:.9rem; } .status { display:inline-block; padding:5px 8px; border-radius:999px; color:#17634e; background:#e2f2e9; font-size:.75rem; font-weight:750; }
+    .top { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px; } a { color:var(--green); font-weight:750; text-decoration:none; } h1 { margin:0; font-size:clamp(2rem,5vw,3rem); letter-spacing:-.055em; } .sub { color:var(--muted); margin:9px 0 0; }
+    .add { display:inline-block; padding:12px 16px; border-radius:10px; color:#fff; background:var(--green); } .add:hover { background:#105d49; } .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:16px; }
+    .card { display:block; overflow:hidden; border:1px solid var(--line); border-radius:16px; color:inherit; background:#fff; text-decoration:none; } .card:hover { border-color:#8fc8b1; } .picture { display:grid; place-items:center; height:150px; overflow:hidden; background:#dff1e8; font-size:4rem; } .picture img { width:100%; height:100%; object-fit:cover; } .info { padding:16px; } .info h2 { margin:0; font-size:1.08rem; } .info p { margin:5px 0 12px; color:var(--muted); font-size:.9rem; } .status { display:inline-block; padding:5px 8px; border-radius:999px; color:#17634e; background:#e2f2e9; font-size:.75rem; font-weight:750; }
     .empty { margin-top:26px; padding:48px 24px; border:1px dashed #a6cdbb; border-radius:16px; background:#f4fbf7; text-align:center; } .empty p { color:var(--muted); } @media (max-width:720px) { main { padding:24px 16px 48px; } .top { align-items:start; flex-direction:column; } .grid { grid-template-columns:1fr; } }
+    .toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+    .toolbar-group { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+    .toolbar label { display:flex; align-items:center; gap:6px; font-size:.85rem; color:var(--muted); cursor:pointer; white-space:nowrap; }
+    .toolbar input[type=checkbox] { width:auto; margin:0; }
+    .toolbar select { padding:8px 9px; border:1px solid var(--line); border-radius:8px; background:#fff; font:inherit; font-size:.85rem; }
+    .ghost-button { padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--green); font:inherit; font-size:.85rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+    .ghost-button:hover { background:var(--mint); }
+    .bulk-bar { display:none; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; padding:12px 16px; border-radius:14px; background:var(--mint); }
+    .bulk-bar.open { display:flex; }
+    #bulk-count { font-weight:750; font-size:.88rem; margin-right:4px; }
+    .bulk-primary { padding:8px 14px; border:0; border-radius:8px; background:var(--green); color:#fff; font:inherit; font-size:.85rem; font-weight:750; cursor:pointer; }
+    .bulk-primary:disabled { opacity:.5; cursor:not-allowed; }
   </style>
   <link rel="stylesheet" href="css/interface.css">
   <style>
-    .page-animals #animal-list.grid { grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px; }
+    .page-animals #animal-list.grid { grid-template-columns:repeat(4,minmax(0,1fr));gap:12px; }
     .page-animals .picture { height:125px;font-size:3rem; }
     .page-animals .info { padding:10px 12px 8px; }
     .page-animals .info h2 { font-size:.92rem;line-height:1.4; }
@@ -26,23 +38,83 @@
     .animal-actions .delete-action { color:#a52d21;border-color:#dfb2aa; }
     @media(max-width:720px) { .page-animals #animal-list.grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; } }
     @media(max-width:360px) { .animal-actions { padding:0 8px 8px;gap:3px; } .animal-actions a,.animal-actions button { font-size:.68rem; } }
+    .card-wrap { position:relative; min-width:0; }
+    .card-wrap .card-select { position:absolute; top:10px; left:10px; z-index:2; width:22px; height:22px; accent-color:var(--green); }
+    .card-wrap.picked > article { outline:3px solid var(--green); outline-offset:-3px; }
+    dialog.rename-dialog { width:min(520px,94vw); padding:22px; border:1px solid #bcd6c9; border-radius:14px; background:#fff; box-sizing:border-box; }
+    dialog.rename-dialog::backdrop { background:#0004; }
+    dialog.rename-dialog input { width:100%; margin-top:4px; padding:10px; border:1px solid var(--line); border-radius:8px; font:inherit; box-sizing:border-box; }
+    dialog.rename-dialog label { display:block; margin-bottom:10px; font-size:.88rem; font-weight:700; }
+    #rename-preview { max-height:220px; overflow:auto; margin:10px 0; }
+    .rename-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); font-size:.88rem; overflow-wrap:anywhere; }
+    .rename-row .old { color:var(--muted); }
   </style>
 </head>
 <body class="page-animals">
   <main>
     <div class="top"><div><a href="index.html">← 대시보드</a><h1>동물 관리</h1><p class="sub">등록한 동물을 사진과 이름으로 빠르게 찾아보세요.</p></div><a class="add" href="animal-register.html">+ 새 동물 등록</a></div>
+    <div class="toolbar" id="toolbar">
+      <div class="toolbar-group">
+        <label><input type="checkbox" id="filter-transferred">양도 완료 보기</label>
+        <label><input type="checkbox" id="filter-deceased">폐사 보기</label>
+      </div>
+      <div class="toolbar-group">
+        <label for="sort-order">정렬<select id="sort-order" style="margin-left:6px"><option value="recent">최근 등록순</option><option value="name">이름순</option><option value="species">종명순</option></select></label>
+        <button type="button" class="ghost-button" id="select-mode-toggle">선택해서 이름 변경</button>
+      </div>
+    </div>
+    <div class="bulk-bar" id="bulk-bar">
+      <span id="bulk-count">0마리 선택</span>
+      <button type="button" class="ghost-button" id="select-all">전체 선택</button>
+      <button type="button" class="ghost-button" id="select-none">선택 해제</button>
+      <button type="button" class="bulk-primary" id="bulk-rename-open" disabled>이름 일괄 변경</button>
+      <button type="button" class="ghost-button" id="select-mode-cancel">선택 모드 종료</button>
+    </div>
     <section id="animal-list" class="grid" aria-label="등록한 동물 목록"></section>
   </main>
   <script src="js/storage-bridge.js"></script>
   <script src="js/record-store.js"></script>
   <script>
     const list = document.querySelector('#animal-list');
-    const animals = JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
-    if (!animals.length) {
-      list.className = 'empty';
-      list.innerHTML = '<strong>아직 등록한 동물이 없어요.</strong><p>첫 번째 개체를 등록하면 이곳에서 사진과 이름으로 확인할 수 있습니다.</p><a class="add" href="animal-register.html">첫 동물 등록하기</a>';
-    } else {
+    const bulkBar = document.querySelector('#bulk-bar');
+    const bulkCount = document.querySelector('#bulk-count');
+    const filterTransferred = document.querySelector('#filter-transferred');
+    const filterDeceased = document.querySelector('#filter-deceased');
+    const sortOrder = document.querySelector('#sort-order');
+    const bulkRenameOpen = document.querySelector('#bulk-rename-open');
+    const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
+    const loadAnimals = () => JSON.parse(CitesStorage.getItem('cites-animals') || '[]');
+    let selectMode = false;
+    let selectedIds = new Set();
+    function visibleAnimals() {
+      let filtered = loadAnimals().filter(animal => {
+        if (animal.status === '양도 완료' && !filterTransferred.checked) return false;
+        if (animal.status === '폐사' && !filterDeceased.checked) return false;
+        return true;
+      });
+      if (sortOrder.value === 'name') filtered = filtered.slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      else if (sortOrder.value === 'species') filtered = filtered.slice().sort((a, b) => a.species.localeCompare(b.species, 'ko') || a.name.localeCompare(b.name, 'ko'));
+      return filtered;
+    }
+    function toggleSelect(id) {
+      if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+      render();
+    }
+    function render() {
+      bulkBar.classList.toggle('open', selectMode);
+      bulkCount.textContent = selectedIds.size + '마리 선택';
+      bulkRenameOpen.disabled = selectedIds.size === 0;
+      if (!loadAnimals().length) {
+        list.className = 'empty';
+        list.innerHTML = '<strong>아직 등록한 동물이 없어요.</strong><p>첫 번째 개체를 등록하면 이곳에서 사진과 이름으로 확인할 수 있습니다.</p><a class="add" href="animal-register.html">첫 동물 등록하기</a>';
+        return;
+      }
+      const animals = visibleAnimals();
+      list.className = 'grid' + (selectMode ? ' select-mode' : '');
+      list.replaceChildren();
+      if (!animals.length) { list.innerHTML = '<p class="empty" style="grid-column:1/-1;margin:0">조건에 맞는 동물이 없습니다. 위 필터를 확인해 주세요.</p>'; return; }
       animals.forEach(animal => {
+        const wrap = document.createElement('div'); wrap.className = 'card-wrap' + (selectedIds.has(animal.id) ? ' picked' : '');
         const link = document.createElement('a');
         link.className = 'card';
         link.href = `animal-detail.html?id=${encodeURIComponent(animal.id)}`;
@@ -61,21 +133,76 @@
           heading.append(status);
         }
         info.append(heading, species); link.append(picture, info);
-        const card = document.createElement('article'); card.style.cssText='min-width:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:white';
         link.style.border='0';
+        if (selectMode) {
+          link.addEventListener('click', event => { event.preventDefault(); toggleSelect(animal.id); });
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.className = 'card-select'; checkbox.checked = selectedIds.has(animal.id);
+          checkbox.addEventListener('click', event => event.stopPropagation());
+          checkbox.addEventListener('change', () => toggleSelect(animal.id));
+          wrap.append(checkbox);
+        }
+        const card = document.createElement('article'); card.style.cssText='min-width:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:white';
         const actions=document.createElement('div'); actions.className='animal-actions';
         const edit=document.createElement('a');edit.href='animal-register.html?edit='+encodeURIComponent(animal.id);edit.textContent='수정';
         const remove=document.createElement('button');remove.type='button';remove.textContent='삭제';remove.className='delete-action';
-        remove.addEventListener('click',()=>{
+        remove.addEventListener('click',(event)=>{
+          event.preventDefault();
           try { CitesRecords.assertAnimalDeletable(animal.id); } catch(error) { alert(error.message); return; }
           if(!confirm(animal.name+' 개체를 삭제할까요? 삭제는 되돌릴 수 없습니다.'))return;
-          try{CitesRecords.deleteAnimal(animal.id);location.reload();}catch(error){alert(error.message);}
+          try{CitesRecords.deleteAnimal(animal.id);selectedIds.delete(animal.id);render();}catch(error){alert(error.message);}
         });
         const copy=document.createElement('a');copy.href='animal-register.html?copy='+encodeURIComponent(animal.id);copy.textContent='복사 등록';copy.className='copy-action';
-
-        actions.append(copy,edit,remove);card.append(link,actions);list.append(card);
+        actions.append(copy,edit,remove);card.append(link,actions);wrap.append(card);list.append(wrap);
       });
     }
+    filterTransferred.addEventListener('change', render);
+    filterDeceased.addEventListener('change', render);
+    sortOrder.addEventListener('change', render);
+    document.querySelector('#select-mode-toggle').addEventListener('click', () => { selectMode = true; selectedIds.clear(); render(); });
+    document.querySelector('#select-all').addEventListener('click', () => { visibleAnimals().forEach(animal => selectedIds.add(animal.id)); render(); });
+    document.querySelector('#select-none').addEventListener('click', () => { selectedIds.clear(); render(); });
+    document.querySelector('#select-mode-cancel').addEventListener('click', () => { selectMode = false; selectedIds.clear(); render(); });
+    bulkRenameOpen.addEventListener('click', () => { if (selectedIds.size) openBulkRenameDialog(); });
+    function openBulkRenameDialog() {
+      const targets = loadAnimals().filter(animal => selectedIds.has(animal.id));
+      const dialog = document.createElement('dialog'); dialog.className = 'rename-dialog';
+      dialog.innerHTML = `<h3 style="margin:0 0 4px">이름 일괄 변경</h3><p class="sub" style="margin:0 0 16px;font-size:.88rem">선택한 ${targets.length}마리 중 "찾을 글자"가 포함된 이름만 바뀝니다. 번호처럼 그대로 둘 부분은 "찾을 글자"에 넣지 마세요.</p><label>찾을 글자<input id="rename-find" placeholder="예: 텍사스"></label><label>바꿀 글자<input id="rename-replace" placeholder="예: 택사스"></label><div id="rename-preview"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button type="button" class="ghost-button" id="rename-cancel">취소</button><button type="button" class="bulk-primary" id="rename-apply" disabled>변경 적용</button></div>`;
+      document.body.append(dialog);
+      const findInput = dialog.querySelector('#rename-find');
+      const replaceInput = dialog.querySelector('#rename-replace');
+      const preview = dialog.querySelector('#rename-preview');
+      const applyButton = dialog.querySelector('#rename-apply');
+      let changed = [];
+      function updatePreview() {
+        const find = findInput.value;
+        const replace = replaceInput.value;
+        if (!find) { preview.innerHTML = '<p class="sub" style="font-size:.85rem">찾을 글자를 입력하면 미리보기가 나타납니다.</p>'; changed = []; applyButton.disabled = true; return; }
+        changed = targets.map(animal => ({ id: animal.id, oldName: animal.name, newName: animal.name.split(find).join(replace) })).filter(item => item.newName !== item.oldName);
+        if (!changed.length) { preview.innerHTML = `<p class="sub" style="font-size:.85rem">"${escapeHtml(find)}"이(가) 포함된 이름이 없습니다.</p>`; applyButton.disabled = true; return; }
+        preview.innerHTML = changed.map(item => `<div class="rename-row"><span class="old">${escapeHtml(item.oldName)}</span><span>→</span><b>${escapeHtml(item.newName)}</b></div>`).join('');
+        applyButton.disabled = changed.some(item => !item.newName.trim());
+      }
+      findInput.addEventListener('input', updatePreview);
+      replaceInput.addEventListener('input', updatePreview);
+      dialog.querySelector('#rename-cancel').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('close', () => dialog.remove());
+      applyButton.addEventListener('click', () => {
+        if (!changed.length) return;
+        if (changed.some(item => !item.newName.trim())) { alert('이름이 빈 값이 되는 항목이 있습니다. "바꿀 글자"를 확인해 주세요.'); return; }
+        if (!confirm(changed.length + '마리의 이름을 변경할까요?')) return;
+        const currentAnimals = loadAnimals();
+        const renameMap = new Map(changed.map(item => [item.id, item.newName]));
+        currentAnimals.forEach(animal => { if (renameMap.has(animal.id)) animal.name = renameMap.get(animal.id); });
+        try { CitesStorage.setItem('cites-animals', JSON.stringify(currentAnimals)); }
+        catch (error) { alert('저장하지 못했습니다: ' + error.message); return; }
+        const count = changed.length;
+        dialog.close(); selectMode = false; selectedIds.clear(); render();
+        alert(count + '마리의 이름을 변경했습니다.');
+      });
+      dialog.showModal();
+      findInput.focus();
+    }
+    render();
   </script>
 </body>
 </html>
