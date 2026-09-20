@@ -58,6 +58,22 @@
     params.set('_r', Date.now());
     frame.contentWindow.location.replace(loc.pathname + '?' + params.toString());
   }
+  let framePollTimer = null;
+  function syncFrameHeight() {
+    const frame = $('workspace');
+    try {
+      const doc = frame.contentDocument;
+      // Collapse first so scrollHeight reflects the new content, not the frame's own previous (possibly larger) height.
+      frame.style.height = '0px';
+      const height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0);
+      frame.style.height = height + 'px';
+    } catch { /* not ready yet */ }
+  }
+  $('workspace').addEventListener('load', () => {
+    syncFrameHeight();
+    clearInterval(framePollTimer);
+    framePollTimer = setInterval(syncFrameHeight, 400);
+  });
   async function openSnapshot(file) {
     const manifest = await (await request(apiRoot+'/'+encodeURIComponent(file.id)+'?alt=media')).json();
     if (manifest.owner !== userId || manifest.format !== 'cites-drive-v1') throw new Error('이 계정의 기록 파일이 아닙니다.');
@@ -159,7 +175,7 @@
   $('logout').onclick = () => {
     if (busy) { status('저장이 끝난 뒤 로그아웃해 주세요.',true); return; }
     if (dirty && !confirm('계정에 저장되지 않은 변경이 있습니다. 기록을 내려받았나요? 로그아웃하면 이 변경은 사라집니다.')) return;
-    clearTimeout(timer); token='';expires=0;userId='';state={};base='';dirty=false;locked=true;assetFiles.clear();mergeParents=null;
+    clearTimeout(timer); clearInterval(framePollTimer); token='';expires=0;userId='';state={};base='';dirty=false;locked=true;assetFiles.clear();mergeParents=null;
     $('workspace').removeAttribute('src');$('workspace').hidden=true;$('welcome').hidden=false;$('conflicts').hidden=true;$('identity').textContent='';
     $('login').hidden=false; $('refresh-page').hidden=true; $('account-panel').hidden=true; status('로그아웃했습니다.');
   };
