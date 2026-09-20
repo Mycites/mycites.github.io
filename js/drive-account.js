@@ -46,8 +46,17 @@
   }
   function showWorkspace() {
     $('welcome').hidden = true; $('workspace').hidden = false;
-    $('login').hidden = true;
+    $('login').hidden = true; $('refresh-page').hidden = false;
     if (!$('workspace').getAttribute('src')) $('workspace').src = 'index.html?account=1'; else $('workspace').contentWindow.location.replace('index.html?account=1');
+  }
+  function refreshWorkspacePage() {
+    const frame = $('workspace');
+    let loc;
+    try { loc = frame.contentWindow.location; } catch { loc = null; }
+    if (!loc || loc.href === 'about:blank') return;
+    const params = new URLSearchParams(loc.search);
+    params.set('_r', Date.now());
+    frame.contentWindow.location.replace(loc.pathname + '?' + params.toString());
   }
   async function openSnapshot(file) {
     const manifest = await (await request(apiRoot+'/'+encodeURIComponent(file.id)+'?alt=media')).json();
@@ -135,6 +144,7 @@
     } catch (error) { status('삭제하지 못했습니다: '+error.message,true); }
     finally { busy = false; }
   }
+  $('refresh-page').onclick = refreshWorkspacePage;
   $('save').onclick = save;
   $('export').onclick = exportRecords;
   $('reset-device').onclick = resetDeviceData;
@@ -151,7 +161,7 @@
     if (dirty && !confirm('계정에 저장되지 않은 변경이 있습니다. 기록을 내려받았나요? 로그아웃하면 이 변경은 사라집니다.')) return;
     clearTimeout(timer); token='';expires=0;userId='';state={};base='';dirty=false;locked=true;assetFiles.clear();mergeParents=null;
     $('workspace').removeAttribute('src');$('workspace').hidden=true;$('welcome').hidden=false;$('conflicts').hidden=true;$('identity').textContent='';
-    $('login').hidden=false; $('account-panel').hidden=true; status('로그아웃했습니다.');
+    $('login').hidden=false; $('refresh-page').hidden=true; $('account-panel').hidden=true; status('로그아웃했습니다.');
   };
   window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
   window.citesAccountReady = () => {
