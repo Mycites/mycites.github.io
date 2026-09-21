@@ -63,10 +63,13 @@
     const frame = $('workspace');
     try {
       const doc = frame.contentDocument;
+      const scrollX = window.scrollX, scrollY = window.scrollY;
       // Collapse first so scrollHeight reflects the new content, not the frame's own previous (possibly larger) height.
+      // Collapsing can reset the outer page's scroll position, so it is restored right after.
       frame.style.height = '0px';
       const height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0);
       frame.style.height = height + 'px';
+      window.scrollTo(scrollX, scrollY);
     } catch { /* not ready yet */ }
   }
   $('workspace').addEventListener('load', () => {
