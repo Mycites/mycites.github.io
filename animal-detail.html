@@ -83,7 +83,7 @@
         const hatchLogs = record.type === '산란' ? (record.hatchLogs || []) : [];
         const tags = [record.laidAt && `산란 ${displayDate(record.laidAt)}`, record.hatchedAt && `부화 ${displayDate(record.hatchedAt)}`, record.temperature && `부화 온도 ${escapeHtml(record.temperature)}℃`, record.eggs && `알 수 ${escapeHtml(record.eggs)}`, record.hatchlings && `부화 수 ${escapeHtml(record.hatchlings)}`, hatchLogs.length ? `누적 부화 ${hatchedTotal(record)}마리` : ''].filter(Boolean).map(tag => `<span class="tag">${tag}</span>`).join('');
         const photo = record.photo ? `<img class="record-photo" src="${escapeHtml(record.photo)}" alt="${escapeHtml(record.type || '증식')} 기록 사진">` : (record.drivePhotoUrl ? `<a class="document-link" href="${escapeHtml(record.drivePhotoUrl)}" target="_blank" rel="noreferrer">Drive에 백업한 사진 보기</a>` : '');
-        const hatchList = hatchLogs.length ? `<div class="hatch-logs">${hatchLogs.slice().sort((a, b) => String(a.hatchedAt).localeCompare(String(b.hatchedAt))).map(hatch => `<div class="hatch-log"><div><b>${displayDate(hatch.hatchedAt)} · ${escapeHtml(hatch.hatchlings)}마리</b>${hatch.temperature ? ' · ' + escapeHtml(hatch.temperature) + '℃' : ''}${hatch.memo ? `<p class="record-note">${escapeHtml(hatch.memo)}</p>` : ''}<p><button type="button" class="cancel" data-record-id="${escapeHtml(record.id)}" data-delete-hatch="${escapeHtml(hatch.id)}">이 부화 기록 삭제</button></p></div>${hatch.photo ? `<img class="record-photo" src="${escapeHtml(hatch.photo)}" alt="부화 사진">` : ''}</div>`).join('')}</div>` : '';
+        const hatchList = hatchLogs.length ? `<div class="hatch-logs">${hatchLogs.slice().sort((a, b) => String(a.hatchedAt).localeCompare(String(b.hatchedAt))).map(hatch => `<div class="hatch-log"><div><b>${displayDate(hatch.hatchedAt)} · ${escapeHtml(hatch.hatchlings)}마리</b>${hatch.temperature ? ' · ' + escapeHtml(hatch.temperature) + '℃' : ''}${hatch.memo ? `<p class="record-note">${escapeHtml(hatch.memo)}</p>` : ''}<p><button type="button" class="cancel" data-record-id="${escapeHtml(record.id)}" data-edit-hatch="${escapeHtml(hatch.id)}">수정</button> <button type="button" class="cancel" data-record-id="${escapeHtml(record.id)}" data-delete-hatch="${escapeHtml(hatch.id)}">이 부화 기록 삭제</button></p></div>${hatch.photo ? `<img class="record-photo" src="${escapeHtml(hatch.photo)}" alt="부화 사진">` : ''}</div>`).join('')}</div>` : '';
         const addHatchButton = record.type === '산란' ? `<p><button type="button" class="cancel" data-add-hatch="${escapeHtml(record.id)}">+ 부화 기록 추가</button></p>` : '';
         return `<article class="record"><div class="record-title"><b>${record.type === '산란' ? '🥚 산란 기록' : record.type === '부화' ? '🐢 부화 기록' : '🥚 증식 기록'}</b><span class="record-date">${displayDate((record.createdAt || '').slice(0, 10))}</span></div><div class="record-data">${tags}</div>${record.memo ? `<p class="record-note">${escapeHtml(record.memo)}</p>` : ''}${photo}${hatchList}${addHatchButton}<p><a href="animal-detail.html?id=${encodeURIComponent(id)}&editRecord=${encodeURIComponent(record.id)}">수정</a> <button type="button" data-delete-record="${escapeHtml(record.id)}">삭제</button></p></article>`;
       }).join('');
@@ -91,11 +91,23 @@
         const record = records.find(item => item.id === button.dataset.addHatch);
         if (record) openHatchDialog(record);
       }));
+      target.querySelectorAll('[data-edit-hatch]').forEach(button => button.addEventListener('click', () => {
+        const record = records.find(item => item.id === button.dataset.recordId);
+        const hatch = record?.hatchLogs?.find(item => item.id === button.dataset.editHatch);
+        if (record && hatch) openHatchDialog(record, hatch);
+      }));
     }
-    function openHatchDialog(record) {
+    function openHatchDialog(record, hatch = null) {
+      const isEdit = Boolean(hatch);
       const dialog = document.createElement('dialog'); dialog.className = 'hatch-dialog';
-      dialog.innerHTML = `<form><h3>부화 기록 추가</h3><p class="helper">산란일 ${escapeHtml(displayDate(record.laidAt))} · 알 수 ${escapeHtml(record.eggs)}개 · 지금까지 부화 ${hatchedTotal(record)}마리</p><div class="field"><label for="hatch-date">부화일</label><input id="hatch-date" type="date" required></div><div class="field"><label for="hatch-count">부화 수</label><input id="hatch-count" type="number" min="1" step="1" inputmode="numeric" required></div><div class="field"><label for="hatch-temp">부화 온도 (℃) <span class="helper">(선택)</span></label><input id="hatch-temp" inputmode="decimal"></div><div class="field"><label for="hatch-photo">부화 사진 <span class="helper">(선택 · 1MB 이하, 넘으면 자동 축소)</span></label><input id="hatch-photo" type="file" accept="image/*"></div><div class="field"><label for="hatch-memo">메모 <span class="helper">(선택)</span></label><textarea id="hatch-memo"></textarea></div><label style="display:flex;align-items:center;gap:8px;font-weight:400"><input id="hatch-calendar" type="checkbox" checked style="width:auto">Google Calendar에도 추가</label><div class="save-row"><button type="button" class="cancel" id="hatch-cancel">취소</button><button type="submit" class="button">추가</button></div></form>`;
+      dialog.innerHTML = `<form><h3>부화 기록 ${isEdit ? '수정' : '추가'}</h3><p class="helper">산란일 ${escapeHtml(displayDate(record.laidAt))} · 알 수 ${escapeHtml(record.eggs)}개 · 지금까지 부화 ${hatchedTotal(record)}마리</p><div class="field"><label for="hatch-date">부화일</label><input id="hatch-date" type="date" required value="${escapeHtml(hatch?.hatchedAt || '')}"></div><div class="field"><label for="hatch-count">부화 수</label><input id="hatch-count" type="number" min="1" step="1" inputmode="numeric" required value="${escapeHtml(hatch?.hatchlings || '')}"></div><div class="field"><label for="hatch-temp">부화 온도 (℃) <span class="helper">(선택)</span></label><input id="hatch-temp" inputmode="decimal" value="${escapeHtml(hatch?.temperature || '')}"></div><div class="field" id="hatch-photo-field"><label for="hatch-photo">부화 사진 <span class="helper">(선택 · 1MB 이하, 넘으면 자동 축소)</span></label><input id="hatch-photo" type="file" accept="image/*"></div><div class="field"><label for="hatch-memo">메모 <span class="helper">(선택)</span></label><textarea id="hatch-memo">${escapeHtml(hatch?.memo || '')}</textarea></div>${isEdit ? '<p class="helper">Google Calendar 일정은 별도로 수정해 주세요.</p>' : '<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input id="hatch-calendar" type="checkbox" checked style="width:auto">Google Calendar에도 추가</label>'}<div class="save-row"><button type="button" class="cancel" id="hatch-cancel">취소</button><button type="submit" class="button">${isEdit ? '수정 저장' : '추가'}</button></div></form>`;
       document.body.append(dialog);
+      if (isEdit && hatch.photo) {
+        const note = document.createElement('p'); note.className = 'helper';
+        note.textContent = '새 사진을 선택하지 않으면 기존 사진을 유지합니다.';
+        note.append(document.createElement('br'), CitesPhotos.image(hatch.photo, '기존 부화 사진'));
+        dialog.querySelector('#hatch-photo-field').append(note);
+      }
       dialog.querySelector('#hatch-cancel').addEventListener('click', () => dialog.close());
       dialog.addEventListener('close', () => dialog.remove());
       dialog.querySelector('form').addEventListener('submit', async event => {
@@ -105,18 +117,20 @@
         if (!hatchDate) { alert('부화일을 입력해 주세요.'); return; }
         if (!Number.isInteger(count) || count < 1) { alert('부화 수를 1 이상 입력해 주세요.'); return; }
         const eggCount = Number(record.eggs || 0);
-        if (eggCount && hatchedTotal(record) + count > eggCount) { alert(`알 수(${eggCount}개)를 초과하여 부화 수를 입력할 수 없습니다. 지금까지 ${hatchedTotal(record)}마리 부화 기록됨.`); return; }
+        const otherHatched = hatchedTotal(record) - Number(hatch?.hatchlings || 0);
+        if (eggCount && otherHatched + count > eggCount) { alert(`알 수(${eggCount}개)를 초과하여 부화 수를 입력할 수 없습니다. 다른 부화 기록에서 이미 ${otherHatched}마리 부화됨.`); return; }
         const photo = dialog.querySelector('#hatch-photo').files[0];
         const finish = photoData => {
-          const hatch = { id:crypto.randomUUID(), hatchedAt:hatchDate, hatchlings:String(count), temperature:dialog.querySelector('#hatch-temp').value.trim(), memo:dialog.querySelector('#hatch-memo').value.trim(), photoName:photo?.name || '', photo:photoData || '', createdAt:new Date().toISOString() };
           const records = JSON.parse(CitesStorage.getItem('cites-breeding-records') || '[]');
           const target = records.find(item => item.id === record.id);
           if (!target) { alert('기록이 삭제되었습니다. 새로고침해 주세요.'); return; }
-          target.hatchLogs = [...(target.hatchLogs || []), hatch]; target.updatedAt = new Date().toISOString();
+          const hatchEntry = { id:hatch?.id || crypto.randomUUID(), hatchedAt:hatchDate, hatchlings:String(count), temperature:dialog.querySelector('#hatch-temp').value.trim(), memo:dialog.querySelector('#hatch-memo').value.trim(), photoName:photo?.name || hatch?.photoName || '', photo:photoData || hatch?.photo || '', createdAt:hatch?.createdAt || new Date().toISOString(), calendarEventId:hatch?.calendarEventId };
+          target.hatchLogs = isEdit ? (target.hatchLogs || []).map(item => item.id === hatch.id ? hatchEntry : item) : [...(target.hatchLogs || []), hatchEntry];
+          target.updatedAt = new Date().toISOString();
           try { CitesStorage.setItem('cites-breeding-records', JSON.stringify(records)); } catch { alert('브라우저 저장 공간이 부족합니다. 더 작은 사진을 사용해 주세요.'); return; }
-          const addToCalendar = dialog.querySelector('#hatch-calendar').checked;
+          const addToCalendar = !isEdit && dialog.querySelector('#hatch-calendar').checked;
           dialog.close(); renderRecords();
-          if (addToCalendar) addBreedingCalendarEvent({ ...hatch, type:'부화' }, (freshRecords, eventId) => { const parent = freshRecords.find(item => item.id === record.id); const saved = parent?.hatchLogs?.find(item => item.id === hatch.id); if (saved) saved.calendarEventId = eventId; });
+          if (addToCalendar) addBreedingCalendarEvent({ ...hatchEntry, type:'부화' }, (freshRecords, eventId) => { const parent = freshRecords.find(item => item.id === record.id); const saved = parent?.hatchLogs?.find(item => item.id === hatchEntry.id); if (saved) saved.calendarEventId = eventId; });
         };
         if (!photo) { finish(''); return; }
         try { finish(await CitesPhotos.read(photo)); } catch (error) { alert(error.message); }
