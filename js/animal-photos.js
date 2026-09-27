@@ -81,6 +81,62 @@
     });
     render(); return {values:() => photos.map(photo => ({...photo, name:photo.name.trim() || photo.type})), loading:() => busy};
   }
-  window.CitesPhotos = {image, read, gallery, editor, compact, migrate};
+  function cropPrompt(dataUrl) {
+    return new Promise(resolvePrompt => {
+      const dialog = document.createElement('dialog');
+      dialog.style.cssText = 'padding:18px;border:1px solid #bcd6c9;border-radius:14px;background:#fff;max-width:min(560px,94vw);box-sizing:border-box';
+      dialog.innerHTML = '<h3 style="margin:0 0 6px">사진에서 사용할 부분 선택</h3><p style="margin:0 0 12px;color:#687b74;font-size:.88rem">이 동물이 있는 부분을 사각형으로 드래그해서 선택하세요. 선택하지 않으면 사진 전체를 사용합니다.</p><div data-stage style="position:relative;display:inline-block;line-height:0;max-width:100%;touch-action:none;cursor:crosshair"><img data-image style="display:block;max-width:100%;max-height:60vh;user-select:none"><div data-box style="position:absolute;border:2px solid #18755d;background:rgba(24,117,93,.2);pointer-events:none" hidden></div></div><p data-crop-message style="margin:10px 0 0;color:#b42318;font-size:.85rem"></p><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button type="button" data-cancel style="padding:10px 13px;border:1px solid #bcd6c9;border-radius:9px;color:#45665a;background:#fff;font:inherit;font-weight:700;cursor:pointer">취소</button><button type="button" data-reset style="padding:10px 13px;border:1px solid #bcd6c9;border-radius:9px;color:#45665a;background:#fff;font:inherit;font-weight:700;cursor:pointer">선택 지우기</button><button type="button" data-use style="padding:10px 13px;border:0;border-radius:9px;color:#fff;background:#18755d;font:inherit;font-weight:700;cursor:pointer">이 부분만 사용</button></div>';
+      document.body.append(dialog);
+      const img = dialog.querySelector('[data-image]');
+      const stage = dialog.querySelector('[data-stage]');
+      const box = dialog.querySelector('[data-box]');
+      const messageEl = dialog.querySelector('[data-crop-message]');
+      let rect = null;
+      function finish(result) { dialog.close(); dialog.remove(); resolvePrompt(result); }
+      function pointFromEvent(event) {
+        const bounds = stage.getBoundingClientRect();
+        return { x: Math.min(Math.max(event.clientX - bounds.left, 0), bounds.width), y: Math.min(Math.max(event.clientY - bounds.top, 0), bounds.height) };
+      }
+      function updateBox(a, b) {
+        const left = Math.min(a.x, b.x), top = Math.min(a.y, b.y), width = Math.abs(a.x - b.x), height = Math.abs(a.y - b.y);
+        box.style.left = left + 'px'; box.style.top = top + 'px'; box.style.width = width + 'px'; box.style.height = height + 'px';
+        const active = width >= 6 && height >= 6;
+        box.hidden = !active;
+        rect = active ? { left, top, width, height } : null;
+      }
+      stage.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        const start = pointFromEvent(event);
+        updateBox(start, start);
+        const move = moveEvent => updateBox(start, pointFromEvent(moveEvent));
+        const up = () => { stage.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+        stage.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up, { once: true });
+      });
+      dialog.querySelector('[data-cancel]').addEventListener('click', () => finish(dataUrl));
+      dialog.addEventListener('cancel', event => { event.preventDefault(); finish(dataUrl); });
+      dialog.querySelector('[data-reset]').addEventListener('click', () => { rect = null; box.hidden = true; messageEl.textContent = ''; });
+      dialog.querySelector('[data-use]').addEventListener('click', () => {
+        if (!rect) { finish(dataUrl); return; }
+        const scaleX = img.naturalWidth / stage.clientWidth, scaleY = img.naturalHeight / stage.clientHeight;
+        const cropX = rect.left * scaleX, cropY = rect.top * scaleY, cropWidth = rect.width * scaleX, cropHeight = rect.height * scaleY;
+        const encode = (maxSide, quality) => {
+          const scale = Math.min(1, maxSide / Math.max(cropWidth, cropHeight));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(cropWidth * scale)); canvas.height = Math.max(1, Math.round(cropHeight * scale));
+          canvas.getContext('2d').drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+          return canvas.toDataURL('image/jpeg', quality);
+        };
+        for (const [maxSide, quality] of [[1600, 0.9], [1600, 0.7], [1100, 0.6], [1100, 0.45], [720, 0.45]]) {
+          const data = encode(maxSide, quality);
+          if (estimateBytes(data) <= MAX_BYTES) { finish(data); return; }
+        }
+        messageEl.textContent = '선택한 영역의 용량을 1MB 이하로 줄이지 못했습니다. 더 작게 선택해 주세요.';
+      });
+      img.addEventListener('load', () => dialog.showModal(), { once: true });
+      img.src = dataUrl;
+    });
+  }
+  window.CitesPhotos = {image, read, cropPrompt, gallery, editor, compact, migrate};
   try { migrate(); } catch { alert("공유 사진 정리를 저장하지 못했습니다. 기존 사진은 유지됩니다. 저장 공간을 확인해 주세요."); }
 })();

@@ -187,7 +187,16 @@
     let photoLoading = false;
     document.querySelector('#photo-name').value = editSource?.photoName || '';
     const photoEditor = CitesPhotos.editor(document.querySelector('#additional-photos'), editSource?.photos || []);
-    const showPhoto = message => { const box = document.querySelector('#photo-feedback'); box.replaceChildren(); if (selectedPhoto) box.append(CitesPhotos.image(selectedPhoto, '대표 사진')); const text = document.createElement('p'); text.textContent = message; box.append(text); };
+    const showPhoto = message => {
+      const box = document.querySelector('#photo-feedback'); box.replaceChildren();
+      if (selectedPhoto) {
+        box.append(CitesPhotos.image(selectedPhoto, '대표 사진'));
+        const cropButton = document.createElement('button'); cropButton.type = 'button'; cropButton.className = 'prev'; cropButton.style.cssText = 'margin:6px 0'; cropButton.textContent = '✂ 영역 잘라내기 (여러 마리가 있는 사진에서 이 동물만 선택)';
+        cropButton.addEventListener('click', async () => { cropButton.disabled = true; try { selectedPhoto = await CitesPhotos.cropPrompt(selectedPhoto); showPhoto('사진 영역을 반영했습니다 · 마지막 단계에서 저장해 주세요.'); } finally { cropButton.disabled = false; } });
+        box.append(cropButton);
+      }
+      const text = document.createElement('p'); text.textContent = message; box.append(text);
+    };
     showPhoto(selectedPhoto ? '저장된 대표 사진입니다.' : '선택한 사진이 여기에 표시됩니다.');
     let photoReadVersion = 0;
     document.querySelector('#photo').addEventListener('change', async event => {
