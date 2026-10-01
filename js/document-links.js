@@ -94,11 +94,59 @@
     try { CitesStorage.setItem('cites-documents', JSON.stringify(documents)); }
     catch { throw new Error('서류 연결을 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); }
   }
+  const PDF_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624';
+  // In account mode the page lives in an iframe that grows to its full content height,
+  // so a centered modal would open far below the visible area. Place it where the user is looking.
+  function fitToVisibleArea(dialog) {
+    let top = 0, height = window.innerHeight;
+    try {
+      const frame = window.frameElement;
+      if (frame) {
+        const rect = frame.getBoundingClientRect();
+        const outerHeight = frame.ownerDocument.defaultView.innerHeight;
+        top = Math.max(0, -rect.top);
+        height = Math.max(200, Math.min(window.innerHeight, outerHeight - rect.top) - top);
+      }
+    } catch { /* cross-origin parent: keep the default */ }
+    const boxHeight = Math.round(height * 0.88) + 'px';
+    dialog.style.inset = Math.round(top + height * 0.06) + 'px 0 auto 0';
+    dialog.style.margin = '0 auto';
+    dialog.style.height = boxHeight; dialog.style.maxHeight = boxHeight;
+  }
+  // Mobile browsers cannot show a PDF inside an iframe, so draw each page with pdf.js instead.
+  async function renderPdf(viewer, bytes, dialog, fallback) {
+    let task;
+    try {
+      const pdfjs = await import(`${PDF_BASE}/build/pdf.min.mjs`);
+      pdfjs.GlobalWorkerOptions.workerSrc = `${PDF_BASE}/build/pdf.worker.min.mjs`;
+      task = pdfjs.getDocument({ data:bytes, isEvalSupported:false, cMapUrl:`${PDF_BASE}/cmaps/`, cMapPacked:true, standardFontDataUrl:`${PDF_BASE}/standard_fonts/` });
+      dialog.addEventListener('close', () => { void task.destroy().catch(() => {}); }, {once:true});
+      const pdf = await task.promise;
+      viewer.replaceChildren();
+      const width = Math.max(240, viewer.clientWidth - 16);
+      for (let number = 1; number <= Math.min(pdf.numPages, 20); number++) {
+        if (!dialog.open) return;
+        const page = await pdf.getPage(number);
+        const base = page.getViewport({ scale:1 });
+        const viewport = page.getViewport({ scale:Math.min(3, width / base.width * (window.devicePixelRatio || 1)) });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+        canvas.style.cssText = 'display:block;width:100%;height:auto;margin:0 auto 8px;background:white;box-shadow:0 1px 3px rgba(0,0,0,.15)';
+        canvas.setAttribute('aria-label', `PDF ${number}/${pdf.numPages}쪽`);
+        viewer.append(canvas);
+        await page.render({ canvasContext:canvas.getContext('2d'), viewport }).promise;
+        page.cleanup();
+      }
+      if (pdf.numPages > 20) { const more = document.createElement('p'); more.textContent = `앞 20쪽만 표시했습니다. 전체 ${pdf.numPages}쪽은 파일을 내려받아 확인하세요.`; viewer.append(more); }
+    } catch {
+      if (dialog.open) fallback();
+    }
+  }
   function previewFile(doc) {
     const match = /^data:(application\/pdf|image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=\s]+)$/.exec(doc.fileData || '');
     if (!match) { alert('이 파일은 미리 볼 수 없습니다. 서류 수정에서 PDF 또는 사진을 다시 첨부해 주세요.'); return; }
-    let url;
-    try { url = URL.createObjectURL(new Blob([Uint8Array.from(atob(match[2]), character => character.charCodeAt(0))], {type:match[1]})); }
+    let url, bytes;
+    try { bytes = Uint8Array.from(atob(match[2].replace(/\s/g, '')), character => character.charCodeAt(0)); url = URL.createObjectURL(new Blob([bytes], {type:match[1]})); }
     catch { alert('첨부 파일을 읽지 못했습니다. 서류 파일을 다시 확인해 주세요.'); return; }
     const dialog = document.createElement('dialog');
     dialog.style.cssText = 'width:min(960px,94vw);max-width:94vw;height:88vh;max-height:88vh;padding:18px;border:1px solid #bcd6c9;border-radius:14px;color:#18352d;background:white;box-sizing:border-box;';
@@ -110,13 +158,30 @@
     header.append(title, close);
     const download = document.createElement('a'); download.href = url; download.download = doc.fileName || (match[1] === 'application/pdf' ? '서류.pdf' : '서류사진'); download.textContent = '첨부 파일 내려받기';
     const hint = document.createElement('small'); hint.textContent = '미리보기가 나타나지 않으면 파일을 내려받아 확인하세요.';
-    const viewer = document.createElement(match[1] === 'application/pdf' ? 'iframe' : 'img');
-    viewer.src = url; viewer.style.cssText = 'width:100%;flex:1;min-height:0;border:0;object-fit:contain;background:#f5f8f6';
-    if (viewer.tagName === 'IFRAME') viewer.title = 'PDF 서류 미리보기'; else viewer.alt = doc.fileName || '첨부 서류 사진';
+    const isPdf = match[1] === 'application/pdf';
+    const frameViewer = () => {
+      const frame = document.createElement('iframe');
+      frame.src = url; frame.title = 'PDF 서류 미리보기';
+      frame.style.cssText = 'width:100%;flex:1;min-height:0;border:0;background:#f5f8f6';
+      return frame;
+    };
+    let viewer;
+    if (isPdf) {
+      viewer = document.createElement('div');
+      viewer.setAttribute('role', 'region'); viewer.setAttribute('aria-label', 'PDF 서류 미리보기');
+      viewer.style.cssText = 'width:100%;flex:1;min-height:0;overflow:auto;padding:8px;box-sizing:border-box;background:#f5f8f6;-webkit-overflow-scrolling:touch';
+      viewer.textContent = 'PDF를 불러오는 중…';
+    } else {
+      viewer = document.createElement('img');
+      viewer.src = url; viewer.alt = doc.fileName || '첨부 서류 사진';
+      viewer.style.cssText = 'width:100%;flex:1;min-height:0;border:0;object-fit:contain;background:#f5f8f6';
+    }
     panel.append(header, download, hint, viewer); dialog.append(panel); document.body.append(dialog);
     dialog.addEventListener('close', () => { dialog.remove(); URL.revokeObjectURL(url); }, {once:true});
     dialog.addEventListener('click', event => { if (event.target === dialog) { const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); } });
+    fitToVisibleArea(dialog);
     dialog.showModal(); close.focus();
+    if (isPdf) void renderPdf(viewer, bytes.slice(), dialog, () => viewer.replaceWith(frameViewer()));
   }
   function renderPicker(container, target, selectedIds = []) {
     const documents = JSON.parse(CitesStorage.getItem('cites-documents') || '[]');
